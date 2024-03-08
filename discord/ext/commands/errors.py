@@ -31,9 +31,9 @@ from discord.utils import _human_join
 
 if TYPE_CHECKING:
     from discord.abc import GuildChannel
+    from discord.app_commands import AppCommandError
     from discord.threads import Thread
     from discord.types.snowflake import Snowflake, SnowflakeList
-    from discord.app_commands import AppCommandError
 
     from ._types import BotT
     from .context import Context
@@ -153,8 +153,6 @@ class UserInputError(CommandError):
     This inherits from :exc:`CommandError`.
     """
 
-    pass
-
 
 class CommandNotFound(CommandError):
     """Exception raised when a command is attempted to be invoked
@@ -165,8 +163,6 @@ class CommandNotFound(CommandError):
 
     This inherits from :exc:`CommandError`.
     """
-
-    pass
 
 
 class MissingRequiredArgument(UserInputError):
@@ -212,8 +208,6 @@ class TooManyArguments(UserInputError):
     This inherits from :exc:`UserInputError`
     """
 
-    pass
-
 
 class BadArgument(UserInputError):
     """Exception raised when a parsing or conversion failure is encountered
@@ -222,16 +216,12 @@ class BadArgument(UserInputError):
     This inherits from :exc:`UserInputError`
     """
 
-    pass
-
 
 class CheckFailure(CommandError):
     """Exception raised when the predicates in :attr:`.Command.checks` have failed.
 
     This inherits from :exc:`CommandError`
     """
-
-    pass
 
 
 class CheckAnyFailure(CheckFailure):
@@ -282,8 +272,6 @@ class NotOwner(CheckFailure):
 
     This inherits from :exc:`CheckFailure`
     """
-
-    pass
 
 
 class ObjectNotFound(BadArgument):
@@ -634,8 +622,6 @@ class DisabledCommand(CommandError):
     This inherits from :exc:`CommandError`
     """
 
-    pass
-
 
 class CommandInvokeError(CommandError):
     """Exception raised when the command being invoked raised an exception.
@@ -870,7 +856,7 @@ class BadUnionArgument(UserInputError):
         self.converters: Tuple[type, ...] = converters
         self.errors: List[CommandError] = errors
 
-        def _get_name(x):
+        def _get_name(x: type) -> str:
             try:
                 return x.__name__
             except AttributeError:
@@ -911,7 +897,7 @@ class BadLiteralArgument(UserInputError):
         self.errors: List[CommandError] = errors
         self.argument: str = argument
 
-        to_string = [repr(l) for l in literals]
+        to_string = [repr(lit) for lit in literals]
         fmt = _human_join(to_string)
         super().__init__(f'Could not convert "{param.displayed_name or param.name}" into the literal {fmt}.')
 
@@ -924,8 +910,6 @@ class ArgumentParsingError(UserInputError):
     There are child classes that implement more granular parsing errors for
     i18n purposes.
     """
-
-    pass
 
 
 class UnexpectedQuoteError(ArgumentParsingError):
@@ -1095,8 +1079,6 @@ class FlagError(BadArgument):
 
     .. versionadded:: 2.0
     """
-
-    pass
 
 
 class TooManyFlags(FlagError):

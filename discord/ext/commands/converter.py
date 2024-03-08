@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import inspect
 import re
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -35,15 +36,14 @@ from typing import (
     List,
     Literal,
     Optional,
-    overload,
     Protocol,
     Tuple,
     Type,
     TypeVar,
     Union,
+    overload,
     runtime_checkable,
 )
-import types
 
 import discord
 
@@ -53,9 +53,9 @@ if TYPE_CHECKING:
     from discord.state import Channel
     from discord.threads import Thread
 
-    from .parameters import Parameter
     from ._types import BotT, _Bot
     from .context import Context
+    from .parameters import Parameter
 
 __all__ = (
     'Converter',
@@ -148,7 +148,7 @@ _ID_REGEX = re.compile(r'([0-9]{15,20})$')
 
 class IDConverter(Converter[T_co]):
     @staticmethod
-    def _get_id_match(argument):
+    def _get_id_match(argument: str):
         return _ID_REGEX.match(argument)
 
 
@@ -675,7 +675,7 @@ class RoleConverter(IDConverter[discord.Role]):
     async def convert(self, ctx: Context[BotT], argument: str) -> discord.Role:
         guild = ctx.guild
         if not guild:
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
 
         match = self._get_id_match(argument) or re.match(r'<@&([0-9]{15,20})>$', argument)
         if match:
@@ -707,9 +707,10 @@ class InviteConverter(Converter[discord.Invite]):
     async def convert(self, ctx: Context[BotT], argument: str) -> discord.Invite:
         try:
             invite = await ctx.bot.fetch_invite(argument)
-            return invite
         except Exception as exc:
             raise BadInviteArgument(argument) from exc
+        else:
+            return invite
 
 
 class GuildConverter(IDConverter[discord.Guild]):
@@ -1141,7 +1142,7 @@ else:
         def __repr__(self) -> str:
             return f'{self.__class__.__name__}[{self.annotation.__name__}, {self.min}, {self.max}]'
 
-        def __class_getitem__(cls, obj) -> Range:
+        def __class_getitem__(cls, obj: object) -> Range:
             if not isinstance(obj, tuple):
                 raise TypeError(f'expected tuple for arguments, received {obj.__class__.__name__} instead')
 
@@ -1300,7 +1301,7 @@ async def run_converters(ctx: Context[BotT], converter: Any, argument: str, para
     origin = getattr(converter, '__origin__', None)
 
     if origin is Union:
-        errors = []
+        errors: List[CommandError] = []
         _NoneType = type(None)
         union_args = converter.__args__
         for conv in union_args:

@@ -23,7 +23,8 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-from typing import Union, Sequence, TYPE_CHECKING, Any
+
+from typing import TYPE_CHECKING, Any, List, Sequence, Union
 
 # fmt: off
 __all__ = (
@@ -34,15 +35,15 @@ __all__ = (
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from .types.message import AllowedMentions as AllowedMentionsPayload
     from .abc import Snowflake
+    from .types.message import AllowedMentions as AllowedMentionsPayload
 
 
 class _FakeBool:
     def __repr__(self):
         return 'True'
 
-    def __eq__(self, other):
+    def __eq__(self, other: object):
         return other is True
 
     def __bool__(self):
@@ -114,20 +115,20 @@ class AllowedMentions:
         return cls(everyone=False, users=False, roles=False, replied_user=False)
 
     def to_dict(self) -> AllowedMentionsPayload:
-        parse = []
+        parse: List[str] = []
         data = {}
 
         if self.everyone:
             parse.append('everyone')
 
-        if self.users == True:
+        if self.users is True:
             parse.append('users')
-        elif self.users != False:
+        elif self.users is not False:
             data['users'] = [x.id for x in self.users]
 
-        if self.roles == True:
+        if self.roles is True:
             parse.append('roles')
-        elif self.roles != False:
+        elif self.roles is not False:
             data['roles'] = [x.id for x in self.roles]
 
         if self.replied_user:

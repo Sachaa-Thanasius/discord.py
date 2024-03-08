@@ -23,7 +23,8 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, TYPE_CHECKING, Any, Tuple, Union
+
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     from aiohttp import ClientResponse, ClientWebSocketResponse
@@ -56,16 +57,12 @@ class DiscordException(Exception):
     Ideally speaking, this could be caught to handle any exceptions raised from this library.
     """
 
-    pass
-
 
 class ClientException(DiscordException):
     """Exception that's raised when an operation in the :class:`Client` fails.
 
     These are usually for exceptions that happened due to user input.
     """
-
-    pass
 
 
 class GatewayNotFound(DiscordException):
@@ -124,7 +121,7 @@ class HTTPException(DiscordException):
             self._errors: Optional[Dict[str, Any]] = errors
             if errors:
                 errors = _flatten_error_dict(errors)
-                helpful = '\n'.join('In %s: %s' % t for t in errors.items())
+                helpful = '\n'.join(f'In {key}: {val}' for key, val in errors.items())
                 self.text = base + '\n' + helpful
             else:
                 self.text = base
@@ -169,16 +166,12 @@ class Forbidden(HTTPException):
     Subclass of :exc:`HTTPException`
     """
 
-    pass
-
 
 class NotFound(HTTPException):
     """Exception that's raised for when status code 404 occurs.
 
     Subclass of :exc:`HTTPException`
     """
-
-    pass
 
 
 class DiscordServerError(HTTPException):
@@ -189,15 +182,11 @@ class DiscordServerError(HTTPException):
     .. versionadded:: 1.5
     """
 
-    pass
-
 
 class InvalidData(ClientException):
     """Exception that's raised when the library encounters unknown
     or invalid data from Discord.
     """
-
-    pass
 
 
 class LoginFailure(ClientException):
@@ -205,8 +194,6 @@ class LoginFailure(ClientException):
     fails to log you in from improper credentials or some other misc.
     failure.
     """
-
-    pass
 
 
 class ConnectionClosed(ClientException):

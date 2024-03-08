@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .errors import UnexpectedQuoteError, InvalidEndOfQuotedStringError, ExpectedClosingQuoteError
+from .errors import ExpectedClosingQuoteError, InvalidEndOfQuotedStringError, UnexpectedQuoteError
 
 # map from opening quotes to closing quotes
 _quotes = {
@@ -191,6 +191,8 @@ class StringView:
                 return ''.join(result)
 
             result.append(current)
+
+        return None
 
     def __repr__(self) -> str:
         return f'<StringView pos: {self.index} prev: {self.previous} end: {self.end} eof: {self.eof}>'

@@ -24,7 +24,9 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import datetime
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncIterator,
     Callable,
@@ -35,29 +37,28 @@ from typing import (
     Mapping,
     NamedTuple,
     Optional,
-    TYPE_CHECKING,
     Sequence,
     Tuple,
     TypeVar,
     Union,
     overload,
 )
-import datetime
 
 import discord.abc
-from .scheduled_event import ScheduledEvent
-from .permissions import PermissionOverwrite, Permissions
-from .enums import ChannelType, ForumLayoutType, ForumOrderType, PrivacyLevel, try_enum, VideoQualityMode, EntityType
-from .mixins import Hashable
+
 from . import utils
-from .utils import MISSING
 from .asset import Asset
+from .enums import ChannelType, EntityType, ForumLayoutType, ForumOrderType, PrivacyLevel, VideoQualityMode, try_enum
 from .errors import ClientException
-from .stage_instance import StageInstance
-from .threads import Thread
-from .partial_emoji import _EmojiTag, PartialEmoji
 from .flags import ChannelFlags
 from .http import handle_message_parameters
+from .mixins import Hashable
+from .partial_emoji import PartialEmoji, _EmojiTag
+from .permissions import PermissionOverwrite, Permissions
+from .scheduled_event import ScheduledEvent
+from .stage_instance import StageInstance
+from .threads import Thread
+from .utils import MISSING
 
 __all__ = (
     'TextChannel',
@@ -74,34 +75,34 @@ __all__ = (
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from .types.threads import ThreadArchiveDuration
-    from .role import Role
-    from .object import Object
-    from .member import Member, VoiceState
     from .abc import Snowflake, SnowflakeTime
     from .embeds import Embed
-    from .message import Message, PartialMessage, EmojiInputType
+    from .file import File
+    from .guild import Guild, GuildChannel as GuildChannelType
+    from .member import Member, VoiceState
     from .mentions import AllowedMentions
-    from .webhook import Webhook
+    from .message import EmojiInputType, Message, PartialMessage
+    from .object import Object
+    from .role import Role
     from .state import ConnectionState
     from .sticker import GuildSticker, StickerItem
-    from .file import File
-    from .user import ClientUser, User, BaseUser
-    from .guild import Guild, GuildChannel as GuildChannelType
-    from .ui.view import View
     from .types.channel import (
-        TextChannel as TextChannelPayload,
-        NewsChannel as NewsChannelPayload,
-        VoiceChannel as VoiceChannelPayload,
-        StageChannel as StageChannelPayload,
-        DMChannel as DMChannelPayload,
         CategoryChannel as CategoryChannelPayload,
-        GroupDMChannel as GroupChannelPayload,
+        DMChannel as DMChannelPayload,
         ForumChannel as ForumChannelPayload,
-        MediaChannel as MediaChannelPayload,
         ForumTag as ForumTagPayload,
+        GroupDMChannel as GroupChannelPayload,
+        MediaChannel as MediaChannelPayload,
+        NewsChannel as NewsChannelPayload,
+        StageChannel as StageChannelPayload,
+        TextChannel as TextChannelPayload,
+        VoiceChannel as VoiceChannelPayload,
     )
     from .types.snowflake import SnowflakeList
+    from .types.threads import ThreadArchiveDuration
+    from .ui.view import View
+    from .user import BaseUser, ClientUser, User
+    from .webhook import Webhook
 
     OverwriteKeyT = TypeVar('OverwriteKeyT', Role, BaseUser, Object, Union[Role, Member, Object])
 
@@ -199,7 +200,7 @@ class TextChannel(discord.abc.Messageable, discord.abc.GuildChannel, Hashable):
             ('news', self.is_news()),
             ('category_id', self.category_id),
         ]
-        joined = ' '.join('%s=%r' % t for t in attrs)
+        joined = ' '.join(f'{name}={val!r}' for name, val in attrs)
         return f'<{self.__class__.__name__} {joined}>'
 
     def _update(self, guild: Guild, data: Union[TextChannelPayload, NewsChannelPayload]) -> None:
@@ -393,6 +394,8 @@ class TextChannel(discord.abc.Messageable, discord.abc.GuildChannel, Hashable):
         if payload is not None:
             # the payload will always be the proper channel payload
             return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
+        else:
+            return None
 
     @utils.copy_doc(discord.abc.GuildChannel.clone)
     async def clone(self, *, name: Optional[str] = None, reason: Optional[str] = None) -> TextChannel:
@@ -949,7 +952,7 @@ class VocalGuildChannel(discord.abc.Messageable, discord.abc.Connectable, discor
     @property
     def members(self) -> List[Member]:
         """List[:class:`Member`]: Returns all members that are currently inside this voice channel."""
-        ret = []
+        ret: List[Member] = []
         for user_id, state in self.guild._voice_states.items():
             if state.channel and state.channel.id == self.id:
                 member = self.guild.get_member(user_id)
@@ -1331,7 +1334,7 @@ class VoiceChannel(VocalGuildChannel):
             ('user_limit', self.user_limit),
             ('category_id', self.category_id),
         ]
-        joined = ' '.join('%s=%r' % t for t in attrs)
+        joined = ' '.join(f'{name}={val!r}' for name, val in attrs)
         return f'<{self.__class__.__name__} {joined}>'
 
     @property
@@ -1455,6 +1458,8 @@ class VoiceChannel(VocalGuildChannel):
         if payload is not None:
             # the payload will always be the proper channel payload
             return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
+        else:
+            return None
 
 
 class StageChannel(VocalGuildChannel):
@@ -1538,7 +1543,7 @@ class StageChannel(VocalGuildChannel):
             ('user_limit', self.user_limit),
             ('category_id', self.category_id),
         ]
-        joined = ' '.join('%s=%r' % t for t in attrs)
+        joined = ' '.join(f'{name}={val!r}' for name, val in attrs)
         return f'<{self.__class__.__name__} {joined}>'
 
     def _update(self, guild: Guild, data: StageChannelPayload) -> None:
@@ -1786,6 +1791,8 @@ class StageChannel(VocalGuildChannel):
         if payload is not None:
             # the payload will always be the proper channel payload
             return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
+        else:
+            return None
 
 
 class CategoryChannel(discord.abc.GuildChannel, Hashable):
@@ -1942,6 +1949,8 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         if payload is not None:
             # the payload will always be the proper channel payload
             return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
+        else:
+            return None
 
     @utils.copy_doc(discord.abc.GuildChannel.move)
     async def move(self, **kwargs: Any) -> None:
@@ -2247,7 +2256,7 @@ class ForumChannel(discord.abc.GuildChannel, Hashable):
             ('nsfw', self.nsfw),
             ('category_id', self.category_id),
         ]
-        joined = ' '.join('%s=%r' % t for t in attrs)
+        joined = ' '.join(f'{name}={val!r}' for name, val in attrs)
         return f'<{self.__class__.__name__} {joined}>'
 
     def _update(self, guild: Guild, data: Union[ForumChannelPayload, MediaChannelPayload]) -> None:
@@ -2559,6 +2568,8 @@ class ForumChannel(discord.abc.GuildChannel, Hashable):
         if payload is not None:
             # the payload will always be the proper channel payload
             return self.__class__(state=self._state, guild=self.guild, data=payload)  # type: ignore
+        else:
+            return None
 
     async def create_tag(
         self,
@@ -3118,7 +3129,7 @@ class GroupChannel(discord.abc.Messageable, discord.abc.PrivateChannel, Hashable
         if len(self.recipients) == 0:
             return 'Unnamed'
 
-        return ', '.join(map(lambda x: x.name, self.recipients))
+        return ', '.join(x.name for x in self.recipients)
 
     def __repr__(self) -> str:
         return f'<GroupChannel id={self.id} name={self.name!r}>'

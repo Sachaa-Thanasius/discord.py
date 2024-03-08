@@ -23,29 +23,30 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
+
 import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, Set, Union, overload
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, List, Set, Union, Sequence, overload, Literal
-
-from .enums import AutoModRuleTriggerType, AutoModRuleActionType, AutoModRuleEventType, try_enum
-from .flags import AutoModPresets
 from . import utils
+from .enums import AutoModRuleActionType, AutoModRuleEventType, AutoModRuleTriggerType, try_enum
+from .flags import AutoModPresets
 from .utils import MISSING, cached_slot_property
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from .abc import Snowflake, GuildChannel
-    from .threads import Thread
+
+    from .abc import GuildChannel, Snowflake
     from .guild import Guild
     from .member import Member
+    from .role import Role
     from .state import ConnectionState
+    from .threads import Thread
     from .types.automod import (
-        AutoModerationRule as AutoModerationRulePayload,
-        AutoModerationTriggerMetadata as AutoModerationTriggerMetadataPayload,
         AutoModerationAction as AutoModerationActionPayload,
         AutoModerationActionExecution as AutoModerationActionExecutionPayload,
+        AutoModerationRule as AutoModerationRulePayload,
+        AutoModerationTriggerMetadata as AutoModerationTriggerMetadataPayload,
     )
-    from .role import Role
 
 __all__ = (
     'AutoModRuleAction',
@@ -179,7 +180,7 @@ class AutoModRuleAction:
         return cls(type=AutoModRuleActionType.block_member_interactions)
 
     def to_dict(self) -> Dict[str, Any]:
-        ret = {'type': self.type.value, 'metadata': {}}
+        ret: Dict[str, Any] = {'type': self.type.value, 'metadata': {}}
         if self.type is AutoModRuleActionType.block_message and self.custom_message is not None:
             ret['metadata'] = {'custom_message': self.custom_message}
         elif self.type is AutoModRuleActionType.timeout:
@@ -338,6 +339,8 @@ class AutoModTrigger:
                 'mention_total_limit': self.mention_limit,
                 'mention_raid_protection_enabled': self.mention_raid_protection,
             }
+        else:
+            return None
 
 
 class AutoModRule:
@@ -425,7 +428,7 @@ class AutoModRule:
     @cached_slot_property('_cs_exempt_roles')
     def exempt_roles(self) -> List[Role]:
         """List[:class:`Role`]: The roles that are exempt from this rule."""
-        result = []
+        result: List[Role] = []
         get_role = self.guild.get_role
         for role_id in self.exempt_role_ids:
             role = get_role(role_id)

@@ -26,75 +26,73 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-import re
 import io
+import re
 from os import PathLike
 from typing import (
-    Dict,
     TYPE_CHECKING,
-    Sequence,
-    Union,
-    List,
-    Optional,
     Any,
     Callable,
-    Tuple,
     ClassVar,
+    Dict,
+    List,
+    Match,
+    Optional,
+    Sequence,
+    Tuple,
     Type,
+    Union,
     overload,
 )
 
 from . import utils
 from .asset import Asset
-from .reaction import Reaction
-from .emoji import Emoji
-from .partial_emoji import PartialEmoji
-from .enums import InteractionType, MessageType, ChannelType, try_enum
-from .errors import HTTPException
+from .channel import PartialMessageable
 from .components import _component_factory
 from .embeds import Embed
-from .member import Member
-from .flags import MessageFlags, AttachmentFlags
+from .emoji import Emoji
+from .enums import ChannelType, InteractionType, MessageType, try_enum
+from .errors import HTTPException
 from .file import File
-from .utils import escape_mentions, MISSING
-from .http import handle_message_parameters
+from .flags import AttachmentFlags, MessageFlags
 from .guild import Guild
+from .http import handle_message_parameters
+from .member import Member
 from .mixins import Hashable
-from .sticker import StickerItem, GuildSticker
+from .partial_emoji import PartialEmoji
+from .reaction import Reaction
+from .sticker import GuildSticker, StickerItem
 from .threads import Thread
-from .channel import PartialMessageable
+from .utils import MISSING, escape_mentions
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from .types.message import (
-        Message as MessagePayload,
-        Attachment as AttachmentPayload,
-        MessageReference as MessageReferencePayload,
-        MessageApplication as MessageApplicationPayload,
-        MessageActivity as MessageActivityPayload,
-        RoleSubscriptionData as RoleSubscriptionDataPayload,
-    )
-
-    from .types.interactions import MessageInteraction as MessageInteractionPayload
-
+    from .abc import GuildChannel, MessageableChannel, Snowflake
+    from .components import ActionRow, ActionRowChildComponentType
+    from .mentions import AllowedMentions
+    from .role import Role
+    from .state import ConnectionState
     from .types.components import Component as ComponentPayload
-    from .types.threads import ThreadArchiveDuration
+    from .types.embed import Embed as EmbedPayload
+    from .types.gateway import MessageReactionRemoveEvent, MessageUpdateEvent
+    from .types.interactions import MessageInteraction as MessageInteractionPayload
     from .types.member import (
         Member as MemberPayload,
         UserWithMember as UserWithMemberPayload,
     )
+    from .types.message import (
+        Attachment as AttachmentPayload,
+        Message as MessagePayload,
+        MessageActivity as MessageActivityPayload,
+        MessageApplication as MessageApplicationPayload,
+        MessageReference as MessageReferencePayload,
+        RoleSubscriptionData as RoleSubscriptionDataPayload,
+    )
+    from .types.threads import ThreadArchiveDuration
     from .types.user import User as UserPayload
-    from .types.embed import Embed as EmbedPayload
-    from .types.gateway import MessageReactionRemoveEvent, MessageUpdateEvent
-    from .abc import Snowflake
-    from .abc import GuildChannel, MessageableChannel
-    from .components import ActionRow, ActionRowChildComponentType
-    from .state import ConnectionState
-    from .mentions import AllowedMentions
-    from .user import User
-    from .role import Role
     from .ui.view import View
+    from .user import User
 
     EmojiInputType = Union[Emoji, PartialEmoji, str]
     MessageComponentType = Union[ActionRow, ActionRowChildComponentType]
@@ -817,6 +815,8 @@ class PartialMessage(Hashable):
         """
         if self.guild is not None:
             return self.guild.get_thread(self.id)
+        else:
+            return None
 
     async def fetch(self) -> Message:
         """|coro|
@@ -869,7 +869,7 @@ class PartialMessage(Hashable):
         """
         if delay is not None:
 
-            async def delete(delay: float):
+            async def delete(delay: float) -> None:
                 await asyncio.sleep(delay)
                 try:
                     await self._state.http.delete_message(self.channel.id, self.id)
@@ -1728,9 +1728,7 @@ class Message(PartialMessage, Hashable):
                     ref.resolved = DeletedReferencedMessage(ref)
                 else:
                     # Right now the channel IDs match but maybe in the future they won't.
-                    if ref.channel_id == channel.id:
-                        chan = channel
-                    elif isinstance(channel, Thread) and channel.parent_id == ref.channel_id:
+                    if ref.channel_id == channel.id or (isinstance(channel, Thread) and channel.parent_id == ref.channel_id):
                         chan = channel
                     else:
                         chan, _ = state._get_guild_channel(resolved, ref.guild_id)
@@ -1777,7 +1775,7 @@ class Message(PartialMessage, Hashable):
             else:
                 setattr(self, key, transform(value))
 
-    def _add_reaction(self, data, emoji, user_id) -> Reaction:
+    def _add_reaction(self, data, emoji: Union[PartialEmoji, Emoji, str], user_id: Optional[int]) -> Reaction:
         reaction = utils.find(lambda r: r.emoji == emoji, self.reactions)
         is_me = data['me'] = user_id == self._state.self_id
 
@@ -1817,7 +1815,7 @@ class Message(PartialMessage, Hashable):
                 break
         else:
             # didn't find anything so just return
-            return
+            return None
 
         del self.reactions[index]
         return reaction
@@ -1934,7 +1932,7 @@ class Message(PartialMessage, Hashable):
             if component is not None:
                 self.components.append(component)
 
-    def _handle_interaction(self, data: MessageInteractionPayload):
+    def _handle_interaction(self, data: MessageInteractionPayload) -> None:
         self.interaction = MessageInteraction(state=self._state, guild=self.guild, data=data)
 
     def _rebind_cached_references(
@@ -2026,7 +2024,7 @@ class Message(PartialMessage, Hashable):
             '@&': resolve_role,
         }
 
-        def repl(match: re.Match) -> str:
+        def repl(match: Match[str]) -> str:
             type = match[1]
             id = int(match[2])
             transformed = transforms[type](id)
@@ -2060,6 +2058,8 @@ class Message(PartialMessage, Hashable):
         if self.guild is not None:
             # Fall back to guild threads in case one was created after the message
             return self._thread or self.guild.get_thread(self.id)
+        else:
+            return None
 
     def is_system(self) -> bool:
         """:class:`bool`: Whether the message is a system message.

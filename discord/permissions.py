@@ -24,8 +24,9 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Callable, Any, ClassVar, Dict, Iterator, Set, TYPE_CHECKING, Tuple, Optional
-from .flags import BaseFlags, flag_value, fill_with_flags, alias_flag_value
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Dict, Iterator, Optional, Set, Tuple
+
+from .flags import BaseFlags, alias_flag_value, fill_with_flags, flag_value
 
 __all__ = (
     'Permissions',
@@ -725,7 +726,7 @@ class Permissions(BaseFlags):
 
 def _augment_from_permissions(cls):
     cls.VALID_NAMES = set(Permissions.VALID_FLAGS)
-    aliases = set()
+    aliases: set[str] = set()
 
     # make descriptors for all the valid names and aliases
     for name, value in Permissions.__dict__.items():
@@ -738,10 +739,10 @@ def _augment_from_permissions(cls):
             continue
 
         # god bless Python
-        def getter(self, x=key):
+        def getter(self: PermissionOverwrite, x: str = key) -> Optional[bool]:
             return self._values.get(x)
 
-        def setter(self, value, x=key):
+        def setter(self: PermissionOverwrite, value: Optional[bool], x: str = key) -> None:
             self._set(x, value)
 
         prop = property(getter, setter)

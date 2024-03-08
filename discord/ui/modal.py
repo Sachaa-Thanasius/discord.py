@@ -28,10 +28,10 @@ import asyncio
 import logging
 import os
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, ClassVar, List
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Sequence
 
-from ..utils import MISSING, find
 from .._types import ClientT
+from ..utils import MISSING, find
 from .item import Item
 from .view import View
 
@@ -113,8 +113,8 @@ class Modal(View):
 
         cls.__modal_children_items__ = children
 
-    def _init_children(self) -> List[Item]:
-        children = []
+    def _init_children(self) -> List[Item[Self]]:
+        children: List[Item[Self]] = []
         for name, item in self.__modal_children_items__.items():
             item = deepcopy(item)
             setattr(self, name, item)
@@ -147,7 +147,6 @@ class Modal(View):
         interaction: :class:`.Interaction`
             The interaction that submitted this modal.
         """
-        pass
 
     async def on_error(self, interaction: Interaction[ClientT], error: Exception, /) -> None:
         """|coro|
@@ -177,14 +176,14 @@ class Modal(View):
                     continue
                 item._refresh_state(interaction, component)  # type: ignore
 
-    async def _scheduled_task(self, interaction: Interaction, components: List[ModalSubmitComponentInteractionDataPayload]):
+    async def _scheduled_task(self, interaction: Interaction, components: List[ModalSubmitComponentInteractionDataPayload]) -> None:
         try:
             self._refresh_timeout()
             self._refresh(interaction, components)
 
             allow = await self.interaction_check(interaction)
             if not allow:
-                return
+                return None
 
             await self.on_submit(interaction)
         except Exception as e:

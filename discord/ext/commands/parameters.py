@@ -26,21 +26,20 @@ from __future__ import annotations
 
 import inspect
 from operator import attrgetter
-from typing import TYPE_CHECKING, Any, Literal, Optional, OrderedDict, Union, Protocol
-
-from discord.utils import MISSING, maybe_coroutine
-
-from .errors import NoPrivateMessage
-from .converter import GuildConverter
+from typing import TYPE_CHECKING, Any, Literal, Optional, OrderedDict, Protocol, Union
 
 from discord import (
-    Member,
-    User,
-    TextChannel,
-    VoiceChannel,
     DMChannel,
+    Member,
+    TextChannel,
     Thread,
+    User,
+    VoiceChannel,
 )
+from discord.utils import MISSING, maybe_coroutine
+
+from .converter import GuildConverter
+from .errors import NoPrivateMessage
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -298,7 +297,7 @@ CurrentChannel._fallback = True
 def default_guild(ctx: Context[Any]) -> Guild:
     if ctx.guild is not None:
         return ctx.guild
-    raise NoPrivateMessage()
+    raise NoPrivateMessage
 
 
 CurrentGuild = parameter(

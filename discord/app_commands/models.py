@@ -23,19 +23,19 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar, Union
 
-from .errors import MissingApplicationID
-from .translator import TranslationContextLocation, TranslationContext, locale_str, Translator
-from ..permissions import Permissions
-from ..enums import AppCommandOptionType, AppCommandType, AppCommandPermissionType, ChannelType, Locale, try_enum
-from ..mixins import Hashable
-from ..utils import _get_as_snowflake, parse_time, snowflake_time, MISSING
-from ..object import Object
-from ..role import Role
+from ..enums import AppCommandOptionType, AppCommandPermissionType, AppCommandType, ChannelType, Locale, try_enum
 from ..member import Member
-
-from typing import Any, Dict, Generic, List, TYPE_CHECKING, Optional, TypeVar, Union
+from ..mixins import Hashable
+from ..object import Object
+from ..permissions import Permissions
+from ..role import Role
+from ..utils import MISSING, _get_as_snowflake, parse_time, snowflake_time
+from .errors import MissingApplicationID
+from .translator import TranslationContext, TranslationContextLocation, Translator, locale_str
 
 __all__ = (
     'AppCommand',
@@ -57,6 +57,11 @@ def is_app_command_argument_type(value: int) -> bool:
 
 
 if TYPE_CHECKING:
+    from ..abc import Snowflake
+    from ..channel import TextChannel
+    from ..guild import Guild, GuildChannel
+    from ..state import ConnectionState
+    from ..threads import Thread
     from ..types.command import (
         ApplicationCommand as ApplicationCommandPayload,
         ApplicationCommandOption,
@@ -69,15 +74,9 @@ if TYPE_CHECKING:
         PartialThread,
     )
     from ..types.threads import (
-        ThreadMetadata,
         ThreadArchiveDuration,
+        ThreadMetadata,
     )
-
-    from ..abc import Snowflake
-    from ..state import ConnectionState
-    from ..guild import GuildChannel, Guild
-    from ..channel import TextChannel
-    from ..threads import Thread
     from ..user import User
 
     ApplicationCommandParent = Union['AppCommand', 'AppCommandGroup']
@@ -968,7 +967,7 @@ class AppCommandGroup:
         self.name_localizations: Dict[Locale, str] = _to_locale_dict(data.get('name_localizations') or {})
         self.description_localizations: Dict[Locale, str] = _to_locale_dict(data.get('description_localizations') or {})
 
-    def to_dict(self) -> 'ApplicationCommandOption':
+    def to_dict(self) -> ApplicationCommandOption:
         return {
             'name': self.name,
             'type': self.type.value,

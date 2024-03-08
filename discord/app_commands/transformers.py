@@ -23,8 +23,8 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-import inspect
 
+import inspect
 from dataclasses import dataclass
 from enum import Enum
 from typing import (
@@ -44,18 +44,18 @@ from typing import (
     Union,
 )
 
-from .errors import AppCommandError, TransformerError
-from .models import AppCommandChannel, AppCommandThread, Choice
-from .translator import TranslationContextLocation, TranslationContext, Translator, locale_str
-from ..channel import StageChannel, VoiceChannel, TextChannel, CategoryChannel, ForumChannel
 from ..abc import GuildChannel
-from ..threads import Thread
-from ..enums import Enum as InternalEnum, AppCommandOptionType, ChannelType, Locale
-from ..utils import MISSING, maybe_coroutine
-from ..user import User
-from ..role import Role
+from ..channel import CategoryChannel, ForumChannel, StageChannel, TextChannel, VoiceChannel
+from ..enums import AppCommandOptionType, ChannelType, Enum as InternalEnum, Locale
 from ..member import Member
 from ..message import Attachment
+from ..role import Role
+from ..threads import Thread
+from ..user import User
+from ..utils import MISSING, maybe_coroutine
+from .errors import AppCommandError, TransformerError
+from .models import AppCommandChannel, AppCommandThread, Choice
+from .translator import TranslationContext, TranslationContextLocation, Translator, locale_str
 
 __all__ = (
     'Transformer',
@@ -404,7 +404,7 @@ class LiteralTransformer(IdentityTransformer):
         super().__init__(opt_type)
 
     @property
-    def choices(self):
+    def choices(self) -> List[Choice[Any]]:
         return self._choices
 
 
@@ -455,7 +455,7 @@ class EnumValueTransformer(Transformer):
         return self._type
 
     @property
-    def choices(self):
+    def choices(self) -> List[Choice[Any]]:
         return self._choices
 
     async def transform(self, interaction: Interaction, value: Any, /) -> Any:
@@ -482,7 +482,7 @@ class EnumNameTransformer(Transformer):
         return AppCommandOptionType.string
 
     @property
-    def choices(self):
+    def choices(self) -> List[Choice[Any]]:
         return self._choices
 
     async def transform(self, interaction: Interaction, value: Any, /) -> Any:
@@ -525,7 +525,7 @@ else:
         .. versionadded:: 2.0
         """
 
-        def __class_getitem__(cls, items) -> Transformer:
+        def __class_getitem__(cls, items: object) -> Transformer:
             if not isinstance(items, tuple):
                 raise TypeError(f'expected tuple for arguments, received {items.__class__.__name__} instead')
 
@@ -570,7 +570,7 @@ else:
                 await interaction.response.send_message(f'Your value is {value}', ephemeral=True)
         """
 
-        def __class_getitem__(cls, obj) -> RangeTransformer:
+        def __class_getitem__(cls, obj: object) -> RangeTransformer:
             if not isinstance(obj, tuple):
                 raise TypeError(f'expected tuple for arguments, received {obj.__class__.__name__} instead')
 
@@ -630,7 +630,7 @@ class BaseChannelTransformer(Transformer):
             types = CHANNEL_TO_TYPES[channel_types[0]]
         else:
             display_name = '{}, and {}'.format(', '.join(t.__name__ for t in channel_types[:-1]), channel_types[-1].__name__)
-            types = []
+            types: List[ChannelType] = []
 
             for t in channel_types:
                 try:

@@ -35,10 +35,10 @@ from .item import Item
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+    from ..interactions import Interaction
     from ..types.components import TextInput as TextInputPayload
     from ..types.interactions import ModalSubmitTextInputInteractionData as ModalSubmitTextInputInteractionDataPayload
     from .view import View
-    from ..interactions import Interaction
 
 
 # fmt: off

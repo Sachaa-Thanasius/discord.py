@@ -24,6 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -31,35 +32,37 @@ from typing import (
     ClassVar,
     Dict,
     List,
+    Optional,
     Tuple,
     Type,
     TypeVar,
     Union,
-    Optional,
 )
 
 import discord
-import inspect
 from discord import app_commands
-from discord.utils import MISSING, maybe_coroutine, async_all
-from .core import Command, Group
-from .errors import BadArgument, CommandRegistrationError, CommandError, HybridCommandError, ConversionError
-from .converter import Converter, Range, Greedy, run_converters, CONVERTER_MAPPING
-from .parameters import Parameter
-from .flags import is_flag, FlagConverter
+from discord.utils import MISSING, async_all, maybe_coroutine
+
 from .cog import Cog
+from .converter import CONVERTER_MAPPING, Converter, Greedy, Range, run_converters
+from .core import Command, Group
+from .errors import BadArgument, CommandError, CommandRegistrationError, ConversionError, HybridCommandError
+from .flags import FlagConverter, is_flag
+from .parameters import Parameter
 from .view import StringView
 
 if TYPE_CHECKING:
-    from typing_extensions import Self, ParamSpec, Concatenate
-    from ._types import ContextT, Coro, BotT
-    from .bot import Bot
-    from .context import Context
+    from typing_extensions import Concatenate, ParamSpec, Self
+
     from discord.app_commands.commands import (
-        Check as AppCommandCheck,
         AutocompleteCallback,
+        Check as AppCommandCheck,
         ChoiceT,
     )
+
+    from ._types import BotT, ContextT, Coro
+    from .bot import Bot
+    from .context import Context
 
 
 __all__ = (
@@ -537,6 +540,8 @@ class HybridCommand(Command[CogT, P, T]):
             return await super()._parse_arguments(ctx)
         elif self.app_command:
             ctx.kwargs = await self.app_command._transform_arguments(interaction, interaction.namespace)
+
+        return None
 
     def _ensure_assignment_on_copy(self, other: Self) -> Self:
         copy = super()._ensure_assignment_on_copy(other)

@@ -26,30 +26,28 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type
 
 import aiohttp
 import yarl
 
-from .state import AutoShardedConnectionState
-from .client import Client
 from .backoff import ExponentialBackoff
-from .gateway import *
+from .client import Client
+from .enums import Status
 from .errors import (
     ClientException,
-    HTTPException,
-    GatewayNotFound,
     ConnectionClosed,
+    GatewayNotFound,
+    HTTPException,
     PrivilegedIntentsRequired,
 )
-
-from .enums import Status
-
-from typing import TYPE_CHECKING, Any, Callable, Tuple, Type, Optional, List, Dict
+from .gateway import ReconnectWebSocket
+from .state import AutoShardedConnectionState
 
 if TYPE_CHECKING:
-    from .gateway import DiscordWebSocket
     from .activity import BaseActivity
     from .flags import Intents
+    from .gateway import DiscordWebSocket
 
 __all__ = (
     'AutoShardedClient',
@@ -71,9 +69,9 @@ class EventType:
 class EventItem:
     __slots__ = ('type', 'shard', 'error')
 
-    def __init__(self, etype: int, shard: Optional['Shard'], error: Optional[Exception]) -> None:
+    def __init__(self, etype: int, shard: Optional[Shard], error: Optional[Exception]) -> None:
         self.type: int = etype
-        self.shard: Optional['Shard'] = shard
+        self.shard: Optional[Shard] = shard
         self.error: Optional[Exception] = error
 
     def __lt__(self, other: object) -> bool:
@@ -351,7 +349,7 @@ class AutoShardedClient(Client):
 
         # instead of a single websocket, we have multiple
         # the key is the shard_id
-        self.__shards = {}
+        self.__shards: Dict[int, Shard] = {}
         self._connection._get_websocket = self._get_websocket
         self._connection._get_client = lambda: self
 
@@ -422,11 +420,13 @@ class AutoShardedClient(Client):
         except Exception:
             _log.exception('Failed to connect for shard_id: %s. Retrying...', shard_id)
             await asyncio.sleep(5.0)
-            return await self.launch_shard(gateway, shard_id)
+            await self.launch_shard(gateway, shard_id)
+            return
 
         # keep reading the shard while others connect
         self.__shards[shard_id] = ret = Shard(ws, self, self.__queue.put_nowait)
         ret.launch()
+        return
 
     async def launch_shards(self) -> None:
         if self.is_closed():
@@ -450,7 +450,7 @@ class AutoShardedClient(Client):
 
     async def _async_setup_hook(self) -> None:
         await super()._async_setup_hook()
-        self.__queue = asyncio.PriorityQueue()
+        self.__queue: asyncio.PriorityQueue[EventItem] = asyncio.PriorityQueue()
 
     async def connect(self, *, reconnect: bool = True) -> None:
         self._reconnect = reconnect

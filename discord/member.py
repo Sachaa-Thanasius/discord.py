@@ -28,21 +28,21 @@ import datetime
 import inspect
 import itertools
 from operator import attrgetter
-from typing import Any, Awaitable, Callable, Collection, Dict, List, Optional, TYPE_CHECKING, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Collection, Dict, List, Optional, Tuple, TypeVar, Union
 
 import discord.abc
 
 from . import utils
+from .activity import ActivityTypes, create_activity
 from .asset import Asset
-from .utils import MISSING
-from .user import BaseUser, User, _UserTag
-from .activity import create_activity, ActivityTypes
-from .permissions import Permissions
+from .colour import Colour
 from .enums import Status, try_enum
 from .errors import ClientException
-from .colour import Colour
-from .object import Object
 from .flags import MemberFlags
+from .object import Object
+from .permissions import Permissions
+from .user import BaseUser, User, _UserTag
+from .utils import MISSING
 
 __all__ = (
     'VoiceState',
@@ -54,24 +54,24 @@ T = TypeVar('T', bound=type)
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from .channel import DMChannel, VoiceChannel, StageChannel
+    from .abc import Snowflake
+    from .channel import DMChannel, StageChannel, VoiceChannel
     from .flags import PublicUserFlags
     from .guild import Guild
+    from .message import Message
+    from .role import Role
+    from .state import ConnectionState
     from .types.activity import (
         ClientStatus as ClientStatusPayload,
         PartialPresenceUpdate,
     )
+    from .types.gateway import GuildMemberUpdateEvent
     from .types.member import (
-        MemberWithUser as MemberWithUserPayload,
         Member as MemberPayload,
+        MemberWithUser as MemberWithUserPayload,
         UserWithMember as UserWithMemberPayload,
     )
-    from .types.gateway import GuildMemberUpdateEvent
-    from .types.user import User as UserPayload, AvatarDecorationData
-    from .abc import Snowflake
-    from .state import ConnectionState
-    from .message import Message
-    from .role import Role
+    from .types.user import AvatarDecorationData, User as UserPayload
     from .types.voice import (
         GuildVoiceState as GuildVoiceStatePayload,
         VoiceState as VoiceStatePayload,
@@ -143,7 +143,7 @@ class VoiceState:
         self.session_id: Optional[str] = data.get('session_id')
         self._update(data, channel)
 
-    def _update(self, data: Union[VoiceStatePayload, GuildVoiceStatePayload], channel: Optional[VocalGuildChannel]):
+    def _update(self, data: Union[VoiceStatePayload, GuildVoiceStatePayload], channel: Optional[VocalGuildChannel]) -> None:
         self.self_mute: bool = data.get('self_mute', False)
         self.self_deaf: bool = data.get('self_deaf', False)
         self.self_stream: bool = data.get('self_stream', False)
@@ -164,7 +164,7 @@ class VoiceState:
             ('requested_to_speak_at', self.requested_to_speak_at),
             ('channel', self.channel),
         ]
-        inner = ' '.join('%s=%r' % t for t in attrs)
+        inner = ' '.join(f'{attr}={val!r}' for attr, val in attrs)
         return f'<{self.__class__.__name__} {inner}>'
 
 
@@ -185,7 +185,7 @@ class _ClientStatus:
             ('mobile', self.mobile),
             ('web', self.web),
         ]
-        inner = ' '.join('%s=%r' % t for t in attrs)
+        inner = ' '.join(f'{attr}={val!r}' for attr, val in attrs)
         return f'<{self.__class__.__name__} {inner}>'
 
     def _update(self, status: str, data: ClientStatusPayload, /) -> None:
@@ -437,8 +437,7 @@ class Member(discord.abc.Messageable, _UserTag):
         return self
 
     async def _get_channel(self) -> DMChannel:
-        ch = await self.create_dm()
-        return ch
+        return await self.create_dm()
 
     def _update(self, data: GuildMemberUpdateEvent) -> None:
         # the nickname change is optional,
@@ -501,6 +500,8 @@ class Member(discord.abc.Messageable, _UserTag):
             )
             # Signal to dispatch on_user_update
             return to_return, u
+        else:
+            return None
 
     @property
     def status(self) -> Status:
@@ -576,7 +577,7 @@ class Member(discord.abc.Messageable, _UserTag):
 
         These roles are sorted by their position in the role hierarchy.
         """
-        result = []
+        result: List[Role] = []
         g = self.guild
         for role_id in self._roles:
             role = g.get_role(role_id)
@@ -657,6 +658,8 @@ class Member(discord.abc.Messageable, _UserTag):
         """
         if self.activities:
             return self.activities[0]
+        else:
+            return None
 
     def mentioned_in(self, message: Message) -> bool:
         """Checks if the member is mentioned in the specified message.
@@ -935,6 +938,8 @@ class Member(discord.abc.Messageable, _UserTag):
         if payload:
             data = await http.edit_member(guild_id, self.id, reason=reason, **payload)
             return Member(data=data, guild=self.guild, state=self._state)
+        else:
+            return None
 
     async def request_to_speak(self) -> None:
         """|coro|

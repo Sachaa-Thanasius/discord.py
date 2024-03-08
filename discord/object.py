@@ -24,18 +24,19 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from .mixins import Hashable
-from .utils import snowflake_time, MISSING
-
 from typing import (
-    SupportsInt,
     TYPE_CHECKING,
+    SupportsInt,
     Type,
     Union,
 )
 
+from .mixins import Hashable
+from .utils import MISSING, snowflake_time
+
 if TYPE_CHECKING:
     import datetime
+
     from . import abc
 
     SupportsIntCast = Union[SupportsInt, str, bytes, bytearray]

@@ -25,11 +25,11 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, overload
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, overload
 
 from .asset import Asset
-from .enums import ActivityType, try_enum
 from .colour import Colour
+from .enums import ActivityType, try_enum
 from .partial_emoji import PartialEmoji
 from .utils import _get_as_snowflake
 
@@ -89,14 +89,13 @@ t.ActivityFlags = {
 """
 
 if TYPE_CHECKING:
+    from .state import ConnectionState
     from .types.activity import (
         Activity as ActivityPayload,
-        ActivityTimestamps,
-        ActivityParty,
         ActivityAssets,
+        ActivityParty,
+        ActivityTimestamps,
     )
-
-    from .state import ConnectionState
 
 
 class BaseActivity:
@@ -131,6 +130,8 @@ class BaseActivity:
         """
         if self._created_at is not None:
             return datetime.datetime.fromtimestamp(self._created_at / 1000, tz=datetime.timezone.utc)
+        else:
+            return None
 
     def to_dict(self) -> ActivityPayload:
         raise NotImplementedError
@@ -250,7 +251,7 @@ class Activity(BaseActivity):
             ('session_id', self.session_id),
             ('emoji', self.emoji),
         )
-        inner = ' '.join('%s=%r' % t for t in attrs)
+        inner = ' '.join(f'{t[0]}={t[1]!r}' % t for t in attrs)
         return f'<Activity {inner}>'
 
     def to_dict(self) -> Dict[str, Any]:
@@ -314,6 +315,9 @@ class Activity(BaseActivity):
             return f'https://media.discordapp.net/{image[3:]}'
         elif self.application_id is not None:
             return Asset.BASE + f'/app-assets/{self.application_id}/{image}.png'
+        else:
+            return None
+        
 
     @property
     def large_image_text(self) -> Optional[str]:
@@ -603,6 +607,8 @@ class Spotify:
         """
         if self._created_at is not None:
             return datetime.datetime.fromtimestamp(self._created_at / 1000, tz=datetime.timezone.utc)
+        else:
+            return None
 
     @property
     def colour(self) -> Colour:

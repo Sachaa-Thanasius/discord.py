@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
 
 from ..enums import AppCommandOptionType, AppCommandType, Locale
 from ..errors import DiscordException, HTTPException, _flatten_error_dict
@@ -51,11 +51,11 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from .commands import Command, Group, ContextMenu, Parameter
-    from .transformers import Transformer
-    from .translator import TranslationContextTypes, locale_str
     from ..types.snowflake import Snowflake, SnowflakeList
     from .checks import Cooldown
+    from .commands import Command, ContextMenu, Group, Parameter
+    from .transformers import Transformer
+    from .translator import TranslationContextTypes, locale_str
 
     CommandTypes = Union[Command[Any, ..., Any], Group, ContextMenu]
 
@@ -80,8 +80,6 @@ class AppCommandError(DiscordException):
 
     .. versionadded:: 2.0
     """
-
-    pass
 
 
 class CommandInvokeError(AppCommandError):
@@ -189,8 +187,6 @@ class CheckFailure(AppCommandError):
 
     .. versionadded:: 2.0
     """
-
-    pass
 
 
 class NoPrivateMessage(CheckFailure):
@@ -443,7 +439,7 @@ def _get_command_error(
     indent: int = 0,
 ) -> None:
     # Import these here to avoid circular imports
-    from .commands import Command, Group, ContextMenu
+    from .commands import Command, ContextMenu, Group
 
     indentation = ' ' * indent
 

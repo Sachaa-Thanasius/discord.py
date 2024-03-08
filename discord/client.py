@@ -48,35 +48,34 @@ from typing import (
 
 import aiohttp
 
-from .sku import SKU, Entitlement
-from .user import User, ClientUser
-from .invite import Invite
-from .template import Template
-from .widget import Widget
-from .guild import Guild
+from . import utils
+from .activity import ActivityTypes, BaseActivity, create_activity
+from .appinfo import AppInfo
+from .backoff import ExponentialBackoff
+from .channel import PartialMessageable, _threaded_channel_factory
 from .emoji import Emoji
-from .channel import _threaded_channel_factory, PartialMessageable
-from .enums import ChannelType, EntitlementOwnerType
-from .mentions import AllowedMentions
+from .enums import ChannelType, EntitlementOwnerType, Status
 from .errors import *
-from .enums import Status
 from .flags import ApplicationFlags, Intents
 from .gateway import *
-from .activity import ActivityTypes, BaseActivity, create_activity
-from .voice_client import VoiceClient
+from .guild import Guild
 from .http import HTTPClient
-from .state import ConnectionState
-from . import utils
-from .utils import MISSING, time_snowflake
+from .invite import Invite
+from .mentions import AllowedMentions
 from .object import Object
-from .backoff import ExponentialBackoff
-from .webhook import Webhook
-from .appinfo import AppInfo
-from .ui.view import View
-from .ui.dynamic import DynamicItem
+from .sku import SKU, Entitlement
 from .stage_instance import StageInstance
-from .threads import Thread
+from .state import ConnectionState
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
+from .template import Template
+from .threads import Thread
+from .ui.dynamic import DynamicItem
+from .ui.view import View
+from .user import ClientUser, User
+from .utils import MISSING, time_snowflake
+from .voice_client import VoiceClient
+from .webhook import Webhook
+from .widget import Widget
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -85,9 +84,10 @@ if TYPE_CHECKING:
 
     from .abc import Messageable, PrivateChannel, Snowflake, SnowflakeTime
     from .app_commands import Command, ContextMenu, MissingApplicationID
+    from .audit_logs import AuditLogEntry
     from .automod import AutoModAction, AutoModRule
     from .channel import DMChannel, GroupChannel
-    from .ext.commands import AutoShardedBot, Bot, Context, CommandError
+    from .ext.commands import AutoShardedBot, Bot, CommandError, Context
     from .guild import GuildChannel
     from .integrations import Integration
     from .interactions import Interaction
@@ -115,7 +115,6 @@ if TYPE_CHECKING:
     from .types.guild import Guild as GuildPayload
     from .ui.item import Item
     from .voice_client import VoiceProtocol
-    from .audit_logs import AuditLogEntry
 
 
 # fmt: off
@@ -456,7 +455,7 @@ class Client:
         event_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> asyncio.Task:
+    ) -> asyncio.Task[Any]:
         wrapped = self._run_event(coro, event_name, *args, **kwargs)
         # Schedules the task
         return self.loop.create_task(wrapped, name=f'discord.py: {event_name}')
@@ -846,7 +845,7 @@ class Client:
             .. versionadded:: 2.0
         """
 
-        async def runner():
+        async def runner() -> None:
             async with self:
                 await self.start(token, reconnect=reconnect)
 
@@ -896,7 +895,7 @@ class Client:
 
         .. versionadded: 2.0
         """
-        if self._connection._status in set(state.value for state in Status):
+        if self._connection._status in {state.value for state in Status}:
             return Status(self._connection._status)
         return Status.online
 
@@ -1009,6 +1008,8 @@ class Client:
 
         if isinstance(channel, StageChannel):
             return channel.instance
+        else:
+            return None
 
     def get_guild(self, id: int, /) -> Optional[Guild]:
         """Returns a guild with the given ID.
@@ -1941,7 +1942,7 @@ class Client:
         future = self.loop.create_future()
         if check is None:
 
-            def _check(*args):
+            def _check(*args: object) -> bool:
                 return True
 
             check = _check

@@ -24,38 +24,38 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, Dict, Generator, Generic, List, Optional, TypeVar, Union, Sequence, Type, overload
+from typing import TYPE_CHECKING, Any, Dict, Generator, Generic, List, Optional, Sequence, Type, TypeVar, Union, overload
 
 import discord.abc
 import discord.utils
-from discord import Interaction, Message, Attachment, MessageType, User, PartialMessageable, Permissions, ChannelType, Thread
+from discord import Attachment, ChannelType, Interaction, Message, MessageType, PartialMessageable, Permissions, Thread, User
 from discord.context_managers import Typing
-from .view import StringView
 
 from ._types import BotT
+from .view import StringView
 
 if TYPE_CHECKING:
-    from typing_extensions import Self, ParamSpec, TypeGuard
+    from types import TracebackType
+
+    from typing_extensions import ParamSpec, Self, TypeGuard
 
     from discord.abc import MessageableChannel
-    from discord.guild import Guild
-    from discord.member import Member
-    from discord.state import ConnectionState
-    from discord.user import ClientUser
-    from discord.voice_client import VoiceProtocol
     from discord.embeds import Embed
     from discord.file import File
+    from discord.guild import Guild
+    from discord.member import Member
     from discord.mentions import AllowedMentions
-    from discord.sticker import GuildSticker, StickerItem
     from discord.message import MessageReference, PartialMessage
-    from discord.ui import View
+    from discord.state import ConnectionState
+    from discord.sticker import GuildSticker, StickerItem
     from discord.types.interactions import ApplicationCommandInteractionData
+    from discord.ui import View
+    from discord.user import ClientUser
+    from discord.voice_client import VoiceProtocol
 
     from .cog import Cog
     from .core import Command
     from .parameters import Parameter
-
-    from types import TracebackType
 
     BE = TypeVar('BE', bound=BaseException)
 
@@ -601,7 +601,7 @@ class Context(discord.abc.Messageable, Generic[BotT]):
             return None
 
         try:
-            entity.qualified_name
+            _ = entity.qualified_name
         except AttributeError:
             # if we're here then it's not a cog, group, or command.
             return None

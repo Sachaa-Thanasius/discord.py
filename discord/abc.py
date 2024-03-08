@@ -24,11 +24,12 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import time
-import asyncio
 from datetime import datetime
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncIterator,
     Callable,
@@ -36,7 +37,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    TYPE_CHECKING,
     Protocol,
     Sequence,
     Tuple,
@@ -46,19 +46,19 @@ from typing import (
     runtime_checkable,
 )
 
-from .object import OLDEST_OBJECT, Object
+from . import utils
 from .context_managers import Typing
 from .enums import ChannelType, InviteTarget
 from .errors import ClientException
-from .mentions import AllowedMentions
-from .permissions import PermissionOverwrite, Permissions
-from .role import Role
-from .invite import Invite
 from .file import File
 from .http import handle_message_parameters
-from .voice_client import VoiceClient, VoiceProtocol
+from .invite import Invite
+from .mentions import AllowedMentions
+from .object import OLDEST_OBJECT, Object
+from .permissions import PermissionOverwrite, Permissions
+from .role import Role
 from .sticker import GuildSticker, StickerItem
-from . import utils
+from .voice_client import VoiceClient, VoiceProtocol
 
 __all__ = (
     'Snowflake',
@@ -74,35 +74,35 @@ T = TypeVar('T', bound=VoiceProtocol)
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from .client import Client
-    from .user import ClientUser
     from .asset import Asset
-    from .state import ConnectionState
-    from .guild import Guild
-    from .member import Member
-    from .channel import CategoryChannel
-    from .embeds import Embed
-    from .message import Message, MessageReference, PartialMessage
     from .channel import (
-        TextChannel,
+        CategoryChannel,
         DMChannel,
         GroupChannel,
         PartialMessageable,
+        StageChannel,
+        TextChannel,
         VocalGuildChannel,
         VoiceChannel,
-        StageChannel,
     )
+    from .client import Client
+    from .embeds import Embed
+    from .guild import Guild
+    from .member import Member
+    from .message import Message, MessageReference, PartialMessage
+    from .state import ConnectionState
     from .threads import Thread
-    from .ui.view import View
     from .types.channel import (
-        PermissionOverwrite as PermissionOverwritePayload,
         Channel as ChannelPayload,
         GuildChannel as GuildChannelPayload,
         OverwriteType,
+        PermissionOverwrite as PermissionOverwritePayload,
     )
     from .types.snowflake import (
         SnowflakeList,
     )
+    from .ui.view import View
+    from .user import ClientUser
 
     PartialMessageableChannel = Union[TextChannel, VoiceChannel, StageChannel, Thread, DMChannel, PartialMessageable]
     MessageableChannel = Union[PartialMessageableChannel, GroupChannel]
@@ -119,7 +119,7 @@ class _Undefined:
 _undefined: Any = _Undefined()
 
 
-async def _single_delete_strategy(messages: Iterable[Message], *, reason: Optional[str] = None):
+async def _single_delete_strategy(messages: Iterable[Message], *, reason: Optional[str] = None) -> None:
     for m in messages:
         await m.delete()
 
@@ -422,7 +422,7 @@ class GuildChannel:
             # add ourselves at our designated position
             channels.insert(index, self)
 
-        payload = []
+        payload: List[Dict[str, Any]] = []
         for index, c in enumerate(channels):
             d: Dict[str, Any] = {'id': c.id, 'position': index}
             if parent_id is not _undefined and c.id == self.id:
@@ -485,7 +485,7 @@ class GuildChannel:
 
         overwrites = options.get('overwrites', None)
         if overwrites is not None:
-            perms = []
+            perms: List[Dict[str, Any]] = []
             for target, perm in overwrites.items():
                 if not isinstance(perm, PermissionOverwrite):
                     raise TypeError(f'Expected PermissionOverwrite received {perm.__class__.__name__}')
@@ -555,7 +555,7 @@ class GuildChannel:
     def changed_roles(self) -> List[Role]:
         """List[:class:`~discord.Role`]: Returns a list of roles that have been overridden from
         their default values in the :attr:`~discord.Guild.roles` attribute."""
-        ret = []
+        ret: List[Role] = []
         g = self.guild
         for overwrite in filter(lambda o: o.is_role(), self._overwrites):
             role = g.get_role(overwrite.id)
@@ -630,7 +630,7 @@ class GuildChannel:
         Dict[Union[:class:`~discord.Role`, :class:`~discord.Member`, :class:`~discord.Object`], :class:`~discord.PermissionOverwrite`]
             The channel's permission overwrites.
         """
-        ret = {}
+        ret: Dict[Union[Role, Member, Object], PermissionOverwrite] = {}
         for ow in self._overwrites:
             allow = Permissions(ow.allow)
             deny = Permissions(ow.deny)
@@ -1194,7 +1194,7 @@ class GuildChannel:
             raise ValueError('Could not resolve appropriate move position')
 
         channels.insert(max((index + offset), 0), self)
-        payload = []
+        payload: List[Dict[str, Any]] = []
         lock_permissions = kwargs.get('sync_permissions', False)
         reason = kwargs.get('reason')
         for index, channel in enumerate(channels):

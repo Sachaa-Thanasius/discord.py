@@ -24,29 +24,28 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-
 import asyncio
 import collections
 import collections.abc
-import inspect
 import importlib.util
-import sys
+import inspect
 import logging
+import sys
 import types
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Mapping,
-    List,
+    Collection,
     Dict,
-    TYPE_CHECKING,
+    Iterable,
+    List,
+    Mapping,
     Optional,
     Sequence,
-    TypeVar,
     Type,
+    TypeVar,
     Union,
-    Iterable,
-    Collection,
     overload,
 )
 
@@ -55,32 +54,33 @@ from discord import app_commands
 from discord.app_commands.tree import _retrieve_guild_ids
 from discord.utils import MISSING, _is_submodule
 
-from .core import GroupMixin
-from .view import StringView
-from .context import Context
 from . import errors
-from .help import HelpCommand, DefaultHelpCommand
 from .cog import Cog
-from .hybrid import hybrid_command, hybrid_group, HybridCommand, HybridGroup
+from .context import Context
+from .core import GroupMixin
+from .help import DefaultHelpCommand, HelpCommand
+from .hybrid import HybridCommand, HybridGroup, hybrid_command, hybrid_group
+from .view import StringView
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
-
     import importlib.machinery
 
-    from discord.message import Message
+    from typing_extensions import Self
+
+    from discord.abc import Snowflake, User
     from discord.interactions import Interaction
-    from discord.abc import User, Snowflake
+    from discord.message import Message
+
     from ._types import (
-        _Bot,
         BotT,
-        UserCheck,
-        CoroFunc,
         ContextT,
+        CoroFunc,
         MaybeAwaitableFunc,
+        UserCheck,
+        _Bot,
     )
     from .core import Command
-    from .hybrid import CommandCallback, ContextT, P
+    from .hybrid import CommandCallback, P
 
     _Prefix = Union[Iterable[str], str]
     _PrefixCallable = MaybeAwaitableFunc[[BotT, Message], _Prefix]
@@ -142,7 +142,7 @@ def when_mentioned_or(*prefixes: str) -> Callable[[_Bot, Message], List[str]]:
     :func:`.when_mentioned`
     """
 
-    def inner(bot, msg):
+    def inner(bot: _Bot, msg: Message) -> List[str]:
         r = list(prefixes)
         r = when_mentioned(bot, msg) + r
         return r
@@ -867,7 +867,7 @@ class BotBase(GroupMixin[None]):
 
         cog = self.__cogs.pop(name, None)
         if cog is None:
-            return
+            return None
 
         help_command = self._help_command
         if help_command and help_command.cog is cog:
@@ -1491,8 +1491,6 @@ class Bot(BotBase, discord.Client):
         .. versionadded:: 2.0
     """
 
-    pass
-
 
 class AutoShardedBot(BotBase, discord.AutoShardedClient):
     """This is similar to :class:`.Bot` except that it is inherited from
@@ -1506,5 +1504,3 @@ class AutoShardedBot(BotBase, discord.AutoShardedClient):
 
             .. versionadded:: 2.0
     """
-
-    pass

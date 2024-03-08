@@ -24,17 +24,17 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-
-from typing import Any, Callable, Deque, Dict, Optional, Union, Generic, TypeVar, TYPE_CHECKING
-from discord.enums import Enum
-from discord.abc import PrivateChannel
-import time
 import asyncio
+import time
 from collections import deque
+from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, Generic, Optional, TypeVar, Union
 
-from .errors import MaxConcurrencyReached
-from .context import Context
+from discord.abc import PrivateChannel
 from discord.app_commands import Cooldown as Cooldown
+from discord.enums import Enum
+
+from .context import Context
+from .errors import MaxConcurrencyReached
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -78,6 +78,8 @@ class BucketType(Enum):
             # NOTE: PrivateChannel doesn't actually have an id attribute but we assume we are
             # receiving a DMChannel or GroupChannel which inherit from PrivateChannel and do
             return (msg.channel if isinstance(msg.channel, PrivateChannel) else msg.author.top_role).id  # type: ignore
+        else:
+            return None
 
     def __call__(self, msg: Union[Message, Context[Any]]) -> Any:
         return self.get_key(msg)

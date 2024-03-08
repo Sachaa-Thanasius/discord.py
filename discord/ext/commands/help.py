@@ -24,29 +24,29 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-import itertools
 import copy
 import functools
+import itertools
 import re
-
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Generator,
-    List,
-    TypeVar,
-    Callable,
     Any,
+    Callable,
+    ClassVar,
     Dict,
-    Tuple,
+    Generator,
     Iterable,
-    Sequence,
+    List,
     Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
 )
 
 import discord.utils
 
-from .core import Group, Command, get_signature_parameters
+from .core import Command, Group, get_signature_parameters
 from .errors import CommandError
 
 if TYPE_CHECKING:
@@ -54,16 +54,15 @@ if TYPE_CHECKING:
 
     import discord.abc
 
-    from .bot import BotBase
-    from .context import Context
-    from .cog import Cog
-    from .parameters import Parameter
-
     from ._types import (
-        UserCheck,
         BotT,
+        UserCheck,
         _Bot,
     )
+    from .bot import BotBase
+    from .cog import Cog
+    from .context import Context
+    from .parameters import Parameter
 
 __all__ = (
     'Paginator',
@@ -332,7 +331,7 @@ class HelpCommand:
         ones passed in the :class:`.Command` constructor.
     """
 
-    MENTION_TRANSFORMS = {
+    MENTION_TRANSFORMS: ClassVar = {
         '@everyone': '@\u200beveryone',
         '@here': '@\u200bhere',
         r'<@!?[0-9]{17,22}>': '@deleted-user',
@@ -472,7 +471,7 @@ class HelpCommand:
             The signature for the command.
         """
         parent: Optional[Group[Any, ..., Any]] = command.parent  # type: ignore # the parent will be a Group
-        entries = []
+        entries: List[str] = []
         while parent is not None:
             if not parent.signature or parent.invoke_without_command:
                 entries.append(parent.name)
@@ -654,7 +653,7 @@ class HelpCommand:
             except CommandError:
                 return False
 
-        ret = []
+        ret: List[Command[Any, ..., Any]] = []
         for cmd in iterator:
             valid = await predicate(cmd)
             if valid:
@@ -750,7 +749,6 @@ class HelpCommand:
         error: :class:`CommandError`
             The error that was raised.
         """
-        pass
 
     async def send_bot_help(self, mapping: Mapping[Optional[Cog], List[Command[Any, ..., Any]]], /) -> None:
         """|coro|
@@ -917,7 +915,6 @@ class HelpCommand:
         command: Optional[:class:`str`]
             The argument passed to the help command.
         """
-        pass
 
     async def command_callback(self, ctx: Context[BotT], /, *, command: Optional[str] = None) -> None:
         """|coro|

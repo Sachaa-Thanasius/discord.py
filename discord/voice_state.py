@@ -39,10 +39,10 @@ Some documentation to refer to:
 
 from __future__ import annotations
 
-import select
-import socket
 import asyncio
 import logging
+import select
+import socket
 import threading
 
 try:
@@ -50,26 +50,25 @@ try:
 except ImportError:
     from async_timeout import timeout as atimeout  # type: ignore
 
-from typing import TYPE_CHECKING, Optional, Dict, List, Callable, Coroutine, Any, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple
 
-from .enums import Enum
-from .utils import MISSING, sane_wait_for
-from .errors import ConnectionClosed
 from .backoff import ExponentialBackoff
+from .enums import Enum
+from .errors import ConnectionClosed
 from .gateway import DiscordVoiceWebSocket
+from .utils import MISSING, sane_wait_for
 
 if TYPE_CHECKING:
     from . import abc
     from .guild import Guild
-    from .user import ClientUser
     from .member import VoiceState
-    from .voice_client import VoiceClient
-
     from .types.voice import (
         GuildVoiceState as GuildVoiceStatePayload,
-        VoiceServerUpdate as VoiceServerUpdatePayload,
         SupportedModes,
+        VoiceServerUpdate as VoiceServerUpdatePayload,
     )
+    from .user import ClientUser
+    from .voice_client import VoiceClient
 
     WebsocketHook = Optional[Callable[[DiscordVoiceWebSocket, Dict[str, Any]], Coroutine[Any, Any, Any]]]
     SocketReaderCallback = Callable[[bytes], Any]

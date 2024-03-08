@@ -24,8 +24,6 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import List, Tuple, TypedDict, Any, TYPE_CHECKING, Callable, TypeVar, Literal, Optional, overload
-
 import array
 import ctypes
 import ctypes.util
@@ -34,6 +32,7 @@ import math
 import os.path
 import struct
 import sys
+from typing import TYPE_CHECKING, Any, Callable, List, Literal, Optional, Tuple, TypedDict, TypeVar, overload
 
 from .errors import DiscordException
 
@@ -136,14 +135,14 @@ signal_ctl: SignalCtl = {
 }
 
 
-def _err_lt(result: int, func: Callable, args: List) -> int:
+def _err_lt(result: int, func: Callable[..., Any], args: List) -> int:
     if result < OK:
         _log.debug('error has happened in %s', func.__name__)
         raise OpusError(result)
     return result
 
 
-def _err_ne(result: T, func: Callable, args: List) -> T:
+def _err_ne(result: T, func: Callable[..., Any], args: List) -> T:
     ret = args[-1]._obj
     if ret.value != OK:
         _log.debug('error has happened in %s', func.__name__)
@@ -314,8 +313,6 @@ class OpusError(DiscordException):
 class OpusNotLoaded(DiscordException):
     """An exception that is thrown for when libopus is not loaded."""
 
-    pass
-
 
 class _OpusStruct:
     SAMPLING_RATE = 48000
@@ -329,7 +326,7 @@ class _OpusStruct:
     @staticmethod
     def get_opus_version() -> str:
         if not is_loaded() and not _load_default():
-            raise OpusNotLoaded()
+            raise OpusNotLoaded
 
         return _lib.opus_get_version_string().decode('utf-8')
 

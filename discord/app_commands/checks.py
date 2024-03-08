@@ -24,38 +24,37 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import time
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Callable,
     Coroutine,
     Dict,
     Hashable,
-    Union,
-    Callable,
-    TypeVar,
     Optional,
-    TYPE_CHECKING,
+    TypeVar,
+    Union,
 )
 
-import time
-
+from ..permissions import Permissions
+from ..user import User
+from ..utils import MISSING, get as utils_get, maybe_coroutine
 from .commands import check
 from .errors import (
-    NoPrivateMessage,
-    MissingRole,
-    MissingAnyRole,
-    MissingPermissions,
     BotMissingPermissions,
     CommandOnCooldown,
+    MissingAnyRole,
+    MissingPermissions,
+    MissingRole,
+    NoPrivateMessage,
 )
-
-from ..user import User
-from ..permissions import Permissions
-from ..utils import get as utils_get, MISSING, maybe_coroutine
 
 T = TypeVar('T')
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
     from ..interactions import Interaction
 
     CooldownFunction = Union[
@@ -172,6 +171,8 @@ class Cooldown:
         # check if we are rate limited and return retry-after
         if self._tokens < 0:
             return self.per - (current - self._window)
+        else:
+            return None
 
     def reset(self) -> None:
         """Reset the cooldown to its initial state."""
@@ -221,7 +222,7 @@ def has_role(item: Union[int, str], /) -> Callable[[T], T]:
 
     def predicate(interaction: Interaction) -> bool:
         if isinstance(interaction.user, User):
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
 
         if isinstance(item, int):
             role = interaction.user.get_role(item)
@@ -272,7 +273,7 @@ def has_any_role(*items: Union[int, str]) -> Callable[[T], T]:
 
     def predicate(interaction: Interaction) -> bool:
         if isinstance(interaction.user, User):
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
 
         if any(
             interaction.user.get_role(item) is not None
@@ -458,6 +459,7 @@ def cooldown(
         cooldown. If ``None`` is passed then it is interpreted as a "global" cooldown.
     """
 
+    key_func: CooldownFunction[Hashable]
     if key is MISSING:
         key_func = lambda interaction: interaction.user.id
     elif key is None:
@@ -527,6 +529,7 @@ def dynamic_cooldown(
         cooldown. If ``None`` is passed then it is interpreted as a "global" cooldown.
     """
 
+    key_func: CooldownFunction[Hashable]
     if key is MISSING:
         key_func = lambda interaction: interaction.user.id
     elif key is None:

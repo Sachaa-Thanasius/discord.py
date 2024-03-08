@@ -24,17 +24,16 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
-from collections import deque
 import concurrent.futures
 import logging
 import struct
 import sys
-import time
 import threading
+import time
 import traceback
 import zlib
-
-from typing import Any, Callable, Coroutine, Deque, Dict, List, TYPE_CHECKING, NamedTuple, Optional, TypeVar, Tuple
+from collections import deque
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Deque, Dict, List, NamedTuple, Optional, Tuple, TypeVar
 
 import aiohttp
 import yarl
@@ -73,8 +72,6 @@ class ReconnectWebSocket(Exception):
 
 class WebSocketClosure(Exception):
     """An exception to make up for the fact that aiohttp doesn't signal closure."""
-
-    pass
 
 
 class EventListener(NamedTuple):
@@ -575,7 +572,7 @@ class DiscordWebSocket:
             func(data)
 
         # remove the dispatched listeners
-        removed = []
+        removed: List[int] = []
         for index, entry in enumerate(self._dispatch_listeners):
             if entry.event != event:
                 continue
@@ -980,7 +977,7 @@ class DiscordVoiceWebSocket:
 
         fut: asyncio.Future[bytes] = self.loop.create_future()
 
-        def get_ip_packet(data: bytes):
+        def get_ip_packet(data: bytes) -> None:
             if data[1] == 0x02 and len(data) == 74:
                 self.loop.call_soon_threadsafe(fut.set_result, data)
 

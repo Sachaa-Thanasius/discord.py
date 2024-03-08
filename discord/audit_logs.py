@@ -24,26 +24,26 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Mapping, Generator, List, Optional, Tuple, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Iterator, List, Mapping, Optional, Tuple, Type, TypeVar, Union
 
 from . import enums, flags, utils
 from .asset import Asset
+from .automod import AutoModRule, AutoModRuleAction, AutoModTrigger
+from .channel import ForumChannel, ForumTag, StageChannel
 from .colour import Colour
+from .emoji import Emoji
+from .integrations import PartialIntegration
 from .invite import Invite
+from .member import Member
 from .mixins import Hashable
 from .object import Object
-from .permissions import PermissionOverwrite, Permissions
-from .automod import AutoModTrigger, AutoModRuleAction, AutoModRule
-from .role import Role
-from .emoji import Emoji
 from .partial_emoji import PartialEmoji
-from .member import Member
+from .permissions import PermissionOverwrite, Permissions
+from .role import Role
 from .scheduled_event import ScheduledEvent
 from .stage_instance import StageInstance
 from .sticker import GuildSticker
 from .threads import Thread
-from .integrations import PartialIntegration
-from .channel import ForumChannel, StageChannel, ForumTag
 
 __all__ = (
     'AuditLogDiff',
@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     import datetime
 
     from . import abc
+    from .app_commands import AppCommand
     from .guild import Guild
     from .state import ConnectionState
     from .types.audit_log import (
@@ -63,18 +64,17 @@ if TYPE_CHECKING:
         AuditLogEntry as AuditLogEntryPayload,
         _AuditLogChange_TriggerMetadata as AuditLogChangeTriggerMetadataPayload,
     )
+    from .types.automod import AutoModerationAction
     from .types.channel import (
-        PermissionOverwrite as PermissionOverwritePayload,
-        ForumTag as ForumTagPayload,
         DefaultReaction as DefaultReactionPayload,
+        ForumTag as ForumTagPayload,
+        PermissionOverwrite as PermissionOverwritePayload,
     )
+    from .types.command import ApplicationCommandPermissions
     from .types.invite import Invite as InvitePayload
     from .types.role import Role as RolePayload
     from .types.snowflake import Snowflake
-    from .types.command import ApplicationCommandPermissions
-    from .types.automod import AutoModerationAction
     from .user import User
-    from .app_commands import AppCommand
     from .webhook import Webhook
 
     TargetType = Union[
@@ -179,7 +179,7 @@ def _transform_default_reaction(entry: AuditLogEntry, data: DefaultReactionPaylo
 def _transform_overwrites(
     entry: AuditLogEntry, data: List[PermissionOverwritePayload]
 ) -> List[Tuple[Object, PermissionOverwrite]]:
-    overwrites = []
+    overwrites: List[Tuple[Snowflake, PermissionOverwrite]] = []
     for elem in data:
         allow = Permissions(int(elem['allow']))
         deny = Permissions(int(elem['deny']))
@@ -272,11 +272,11 @@ class AuditLogDiff:
     def __len__(self) -> int:
         return len(self.__dict__)
 
-    def __iter__(self) -> Generator[Tuple[str, Any], None, None]:
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield from self.__dict__.items()
 
     def __repr__(self) -> str:
-        values = ' '.join('%s=%r' % item for item in self.__dict__.items())
+        values = ' '.join(f'{name}={val!r}' for name, val in self.__dict__.items())
         return f'<AuditLogDiff {values}>'
 
     if TYPE_CHECKING:
@@ -439,7 +439,7 @@ class AuditLogChanges:
         if not hasattr(first, 'roles'):
             setattr(first, 'roles', [])
 
-        data = []
+        data: List[Union[Object, Role]] = []
         g: Guild = entry.guild
 
         for e in elem:
@@ -459,7 +459,7 @@ class AuditLogChanges:
         diff: AuditLogDiff,
         entry: AuditLogEntry,
         data: Optional[ApplicationCommandPermissions],
-    ):
+    ) -> None:
         if data is None:
             return
 
@@ -475,7 +475,7 @@ class AuditLogChanges:
         entry: AuditLogEntry,
         data: AuditLogChangeTriggerMetadataPayload,
         full_data: List[AuditLogChangePayload],
-    ):
+    ) -> None:
         trigger_value: Optional[int] = None
         trigger_type: Optional[enums.AutoModRuleTriggerType] = None
 
@@ -517,7 +517,7 @@ class AuditLogChanges:
 
     def _handle_trigger_attr_update(
         self, first: AuditLogDiff, second: AuditLogDiff, entry: AuditLogEntry, attr: str, data: List[str]
-    ):
+    ) -> None:
         self._create_trigger(first, entry)
         trigger = self._create_trigger(second, entry)
         try:

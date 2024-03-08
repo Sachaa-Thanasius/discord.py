@@ -23,25 +23,24 @@ DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
 
-import threading
-import subprocess
-import warnings
-import audioop
 import asyncio
-import logging
-import shlex
-import time
-import json
-import sys
-import re
+import audioop
 import io
-
-from typing import Any, Callable, Generic, IO, Optional, TYPE_CHECKING, Tuple, TypeVar, Union
+import json
+import logging
+import re
+import shlex
+import subprocess
+import sys
+import threading
+import time
+import warnings
+from typing import IO, TYPE_CHECKING, Any, Callable, Generic, List, Optional, Tuple, TypeVar, Union
 
 from .enums import SpeakingState
 from .errors import ClientException
-from .opus import Encoder as OpusEncoder, OPUS_SILENCE
 from .oggparse import OggStream
+from .opus import OPUS_SILENCE, Encoder as OpusEncoder
 from .utils import MISSING
 
 if TYPE_CHECKING:
@@ -112,7 +111,6 @@ class AudioSource:
         Useful for clearing buffer data or processes after
         it is done playing audio.
         """
-        pass
 
     def __del__(self) -> None:
         self.cleanup()
@@ -320,7 +318,7 @@ class FFmpegPCMAudio(FFmpegAudio):
         before_options: Optional[str] = None,
         options: Optional[str] = None,
     ) -> None:
-        args = []
+        args: List[str] = []
         subprocess_kwargs = {'stdin': subprocess.PIPE if pipe else subprocess.DEVNULL, 'stderr': stderr}
 
         if isinstance(before_options, str):
@@ -432,7 +430,7 @@ class FFmpegOpusAudio(FFmpegAudio):
         before_options: Optional[str] = None,
         options: Optional[str] = None,
     ) -> None:
-        args = []
+        args: List[str] = []
         subprocess_kwargs = {'stdin': subprocess.PIPE if pipe else subprocess.DEVNULL, 'stderr': stderr}
 
         if isinstance(before_options, str):
@@ -591,7 +589,7 @@ class FFmpegOpusAudio(FFmpegAudio):
         except Exception:
             if not fallback:
                 _log.exception("Probe '%s' using '%s' failed", method, executable)
-                return  # type: ignore
+                return None  # type: ignore
 
             _log.exception("Probe '%s' using '%s' failed, trying fallback", method, executable)
             try:

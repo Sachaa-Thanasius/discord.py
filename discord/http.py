@@ -25,9 +25,13 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
+import datetime
 import logging
+import socket
 import sys
+from collections import deque
 from typing import (
+    TYPE_CHECKING,
     Any,
     ClassVar,
     Coroutine,
@@ -35,40 +39,37 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     NamedTuple,
     Optional,
-    overload,
     Sequence,
     Tuple,
-    TYPE_CHECKING,
     Type,
     TypeVar,
     Union,
+    overload,
 )
 from urllib.parse import quote as _uriquote
-from collections import deque
-import datetime
-import socket
 
 import aiohttp
 
-from .errors import HTTPException, RateLimited, Forbidden, NotFound, LoginFailure, DiscordServerError, GatewayNotFound
-from .gateway import DiscordClientWebSocketResponse
-from .file import File
-from .mentions import AllowedMentions
 from . import __version__, utils
+from .errors import DiscordServerError, Forbidden, GatewayNotFound, HTTPException, LoginFailure, NotFound, RateLimited
+from .file import File
+from .gateway import DiscordClientWebSocketResponse
+from .mentions import AllowedMentions
 from .utils import MISSING
 
 _log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from typing_extensions import Self
 
-    from .ui.view import View
     from .embeds import Embed
-    from .message import Attachment
     from .flags import MessageFlags
-
+    from .message import Attachment
     from .types import (
         appinfo,
         audit_log,
@@ -81,20 +82,19 @@ if TYPE_CHECKING:
         invite,
         member,
         message,
-        template,
         role,
+        scheduled_event,
+        sku,
+        sticker,
+        template,
+        threads,
         user,
         webhook,
-        widget,
-        threads,
-        scheduled_event,
-        sticker,
         welcome_screen,
-        sku,
+        widget,
     )
     from .types.snowflake import Snowflake, SnowflakeList
-
-    from types import TracebackType
+    from .ui.view import View
 
     T = TypeVar('T')
     BE = TypeVar('BE', bound=BaseException)
@@ -166,7 +166,7 @@ def handle_message_parameters(
     if attachments is not MISSING and files is not MISSING:
         raise TypeError('Cannot mix attachments and files keyword arguments.')
 
-    payload = {}
+    payload: Optional[Dict[str, Any]] = {}
     if embeds is not MISSING:
         if len(embeds) > 10:
             raise ValueError('embeds has a maximum of 10 elements.')
@@ -234,7 +234,7 @@ def handle_message_parameters(
 
     if attachments is not MISSING:
         file_index = 0
-        attachments_payload = []
+        attachments_payload: List[Mapping[str, Any]] = []
         for attachment in attachments:
             if isinstance(attachment, File):
                 attachments_payload.append(attachment.to_dict(file_index))
@@ -256,7 +256,7 @@ def handle_message_parameters(
         }
         payload.update(channel_payload)
 
-    multipart = []
+    multipart: List[Dict[str, Any]] = []
     if files:
         multipart.append({'name': 'payload_json', 'value': utils._to_json(payload)})
         payload = None
@@ -276,7 +276,7 @@ def handle_message_parameters(
 INTERNAL_API_VERSION: int = 10
 
 
-def _set_api_version(value: int):
+def _set_api_version(value: int) -> None:
     global INTERNAL_API_VERSION
 
     if not isinstance(value, int):
@@ -371,7 +371,7 @@ class Ratelimit:
             f'<RateLimitBucket limit={self.limit} remaining={self.remaining} pending_requests={len(self._pending_requests)}>'
         )
 
-    def reset(self):
+    def reset(self) -> None:
         self.remaining = self.limit - self.outgoing
         self.expires = None
         self.reset_after = 0.0
@@ -1783,7 +1783,7 @@ class HTTPClient:
         target_application_id: Optional[Snowflake] = None,
     ) -> Response[invite.Invite]:
         r = Route('POST', '/channels/{channel_id}/invites', channel_id=channel_id)
-        payload = {
+        payload: Dict[str, Any] = {
             'max_age': max_age,
             'max_uses': max_uses,
             'temporary': temporary,
@@ -2493,7 +2493,7 @@ class HTTPClient:
         try:
             data = await self.request(Route('GET', '/gateway'))
         except HTTPException as exc:
-            raise GatewayNotFound() from exc
+            raise GatewayNotFound from exc
         if zlib:
             value = '{0}?encoding={1}&v={2}&compress=zlib-stream'
         else:
@@ -2504,7 +2504,7 @@ class HTTPClient:
         try:
             data = await self.request(Route('GET', '/gateway/bot'))
         except HTTPException as exc:
-            raise GatewayNotFound() from exc
+            raise GatewayNotFound from exc
 
         if zlib:
             value = '{0}?encoding={1}&v={2}&compress=zlib-stream'

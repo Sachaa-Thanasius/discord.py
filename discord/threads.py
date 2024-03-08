@@ -24,17 +24,17 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Callable, Dict, Iterable, List, Literal, Optional, Sequence, Union, TYPE_CHECKING
-from datetime import datetime
 import array
+from datetime import datetime
+from typing import TYPE_CHECKING, Callable, Dict, Iterable, List, Literal, Optional, Sequence, Union
 
-from .mixins import Hashable
-from .abc import Messageable, GuildChannel, _purge_helper
+from .abc import GuildChannel, Messageable, _purge_helper
 from .enums import ChannelType, try_enum
 from .errors import ClientException
 from .flags import ChannelFlags
+from .mixins import Hashable
 from .permissions import Permissions
-from .utils import MISSING, parse_time, _get_as_snowflake, _unique
+from .utils import MISSING, _get_as_snowflake, _unique, parse_time
 
 __all__ = (
     'Thread',
@@ -44,20 +44,20 @@ __all__ = (
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from .types.threads import (
-        Thread as ThreadPayload,
-        ThreadMember as ThreadMemberPayload,
-        ThreadMetadata,
-        ThreadArchiveDuration,
-    )
-    from .types.snowflake import SnowflakeList
+    from .abc import Snowflake, SnowflakeTime
+    from .channel import CategoryChannel, ForumChannel, ForumTag, TextChannel
     from .guild import Guild
-    from .channel import TextChannel, CategoryChannel, ForumChannel, ForumTag
     from .member import Member
     from .message import Message, PartialMessage
-    from .abc import Snowflake, SnowflakeTime
     from .role import Role
     from .state import ConnectionState
+    from .types.snowflake import SnowflakeList
+    from .types.threads import (
+        Thread as ThreadPayload,
+        ThreadArchiveDuration,
+        ThreadMember as ThreadMemberPayload,
+        ThreadMetadata,
+    )
 
     ThreadChannelType = Literal[ChannelType.news_thread, ChannelType.public_thread, ChannelType.private_thread]
 
@@ -171,7 +171,7 @@ class Thread(Messageable, Hashable):
     def __str__(self) -> str:
         return self.name
 
-    def _from_data(self, data: ThreadPayload):
+    def _from_data(self, data: ThreadPayload) -> None:
         self.id: int = int(data['id'])
         self.parent_id: int = int(data['parent_id'])
         self.owner_id: int = int(data['owner_id'])
@@ -194,7 +194,7 @@ class Thread(Messageable, Hashable):
         else:
             self.me = ThreadMember(self, member)
 
-    def _unroll_metadata(self, data: ThreadMetadata):
+    def _unroll_metadata(self, data: ThreadMetadata) -> None:
         self.archived: bool = data['archived']
         self.archiver_id: Optional[int] = _get_as_snowflake(data, 'archiver_id')
         self.auto_archive_duration: int = data['auto_archive_duration']
@@ -267,7 +267,7 @@ class Thread(Messageable, Hashable):
 
         .. versionadded:: 2.1
         """
-        tags = []
+        tags: List[ForumTag] = []
         if self.parent is None or self.parent.type != ChannelType.forum:
             return tags
 

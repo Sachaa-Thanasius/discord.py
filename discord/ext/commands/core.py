@@ -27,6 +27,7 @@ import asyncio
 import datetime
 import functools
 import inspect
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -44,18 +45,17 @@ from typing import (
     Union,
     overload,
 )
-import re
 
 import discord
+from discord.app_commands.commands import NUMPY_DOCSTRING_ARG_REGEX
 
-from ._types import _BaseCommand, CogT
+from ._types import CogT, _BaseCommand
 from .cog import Cog
 from .context import Context
 from .converter import Greedy, run_converters
 from .cooldowns import BucketType, Cooldown, CooldownMapping, DynamicCooldownMapping, MaxConcurrency
 from .errors import *
 from .parameters import Parameter, Signature
-from discord.app_commands.commands import NUMPY_DOCSTRING_ARG_REGEX
 
 if TYPE_CHECKING:
     from typing_extensions import Concatenate, ParamSpec, Self
@@ -252,23 +252,23 @@ def hooked_wrapped_callback(
     return wrapped
 
 
-class _CaseInsensitiveDict(dict):
-    def __contains__(self, k):
+class _CaseInsensitiveDict(Dict[str, Any]):
+    def __contains__(self, k: str):
         return super().__contains__(k.casefold())
 
-    def __delitem__(self, k):
+    def __delitem__(self, k: str):
         return super().__delitem__(k.casefold())
 
-    def __getitem__(self, k):
+    def __getitem__(self, k: str):
         return super().__getitem__(k.casefold())
 
-    def get(self, k, default=None):
+    def get(self, k: str, default=None):
         return super().get(k.casefold(), default)
 
-    def pop(self, k, default=None):
+    def pop(self, k: str, default=None):
         return super().pop(k.casefold(), default)
 
-    def __setitem__(self, k, v):
+    def __setitem__(self, k: str, v):
         super().__setitem__(k.casefold(), v)
 
 
@@ -1174,7 +1174,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         if not params:
             return ''
 
-        result = []
+        result: List[str] = []
         for param in params.values():
             name = param.displayed_name or param.name
 
@@ -1992,7 +1992,7 @@ def check_any(*checks: Check[ContextT]) -> Check[ContextT]:
             unwrapped.append(pred)
 
     async def predicate(ctx: Context[BotT]) -> bool:
-        errors = []
+        errors: List[CheckFailure] = []
         for func in unwrapped:
             try:
                 value = await func(ctx)
@@ -2040,7 +2040,7 @@ def has_role(item: Union[int, str], /) -> Check[Any]:
 
     def predicate(ctx: Context[BotT]) -> bool:
         if ctx.guild is None:
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
 
         # ctx.guild is None doesn't narrow ctx.author to Member
         if isinstance(item, int):
@@ -2088,7 +2088,7 @@ def has_any_role(*items: Union[int, str]) -> Callable[[T], T]:
 
     def predicate(ctx):
         if ctx.guild is None:
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
 
         # ctx.guild is None doesn't narrow ctx.author to Member
         if any(
@@ -2123,7 +2123,7 @@ def bot_has_role(item: int, /) -> Callable[[T], T]:
 
     def predicate(ctx):
         if ctx.guild is None:
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
 
         if isinstance(item, int):
             role = ctx.me.get_role(item)
@@ -2152,7 +2152,7 @@ def bot_has_any_role(*items: int) -> Callable[[T], T]:
 
     def predicate(ctx):
         if ctx.guild is None:
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
 
         me = ctx.me
         if any(
@@ -2305,7 +2305,7 @@ def dm_only() -> Check[Any]:
 
     def predicate(ctx: Context[BotT]) -> bool:
         if ctx.guild is not None:
-            raise PrivateMessageOnly()
+            raise PrivateMessageOnly
         return True
 
     return check(predicate)
@@ -2330,7 +2330,7 @@ def guild_only() -> Check[Any]:
 
     def predicate(ctx: Context[BotT]) -> bool:
         if ctx.guild is None:
-            raise NoPrivateMessage()
+            raise NoPrivateMessage
         return True
 
     def decorator(func: Union[Command, CoroFunc]) -> Union[Command, CoroFunc]:

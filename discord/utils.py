@@ -25,13 +25,29 @@ from __future__ import annotations
 
 import array
 import asyncio
+import datetime
+import functools
+import json
+import logging
+import os
+import re
+import sys
+import types
+import unicodedata
+import warnings
+from base64 import b64decode, b64encode
+from bisect import bisect_left
+from inspect import isawaitable as _isawaitable, signature as _signature
+from operator import attrgetter
 from textwrap import TextWrapper
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncIterable,
     AsyncIterator,
     Awaitable,
     Callable,
+    ClassVar,
     Collection,
     Coroutine,
     Dict,
@@ -45,31 +61,16 @@ from typing import (
     NamedTuple,
     Optional,
     Protocol,
-    Set,
     Sequence,
+    Set,
     SupportsIndex,
     Tuple,
     Type,
     TypeVar,
     Union,
     overload,
-    TYPE_CHECKING,
 )
-import unicodedata
-from base64 import b64encode, b64decode
-from bisect import bisect_left
-import datetime
-import functools
-from inspect import isawaitable as _isawaitable, signature as _signature
-from operator import attrgetter
 from urllib.parse import urlencode
-import json
-import re
-import os
-import sys
-import types
-import warnings
-import logging
 
 import yarl
 
@@ -106,7 +107,7 @@ DEFAULT_FILE_SIZE_LIMIT_BYTES = 26214400
 class _MissingSentinel:
     __slots__ = ()
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         return False
 
     def __bool__(self) -> bool:
@@ -127,7 +128,7 @@ class _cached_property:
         self.function = function
         self.__doc__ = getattr(function, '__doc__')
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance: object, owner: type):
         if instance is None:
             return self
 
@@ -142,9 +143,9 @@ if TYPE_CHECKING:
 
     from typing_extensions import ParamSpec, Self, TypeGuard
 
-    from .permissions import Permissions
     from .abc import Snowflake
     from .invite import Invite
+    from .permissions import Permissions
     from .template import Template
 
     class _RequestLike(Protocol):
@@ -597,7 +598,7 @@ def get(iterable: _Iter[T], /, **attrs: Any) -> Union[Optional[T], Coro[Optional
 
 
 def _unique(iterable: Iterable[T]) -> List[T]:
-    return [x for x in dict.fromkeys(iterable)]
+    return list(dict.fromkeys(iterable))
 
 
 def _get_as_snowflake(data: Any, key: str) -> Optional[int]:
@@ -609,7 +610,7 @@ def _get_as_snowflake(data: Any, key: str) -> Optional[int]:
         return value and int(value)
 
 
-def _get_mime_type_for_image(data: bytes):
+def _get_mime_type_for_image(data: bytes) -> str:
     if data.startswith(b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A'):
         return 'image/png'
     elif data[0:3] == b'\xff\xd8\xff' or data[6:10] in (b'JFIF', b'Exif'):
@@ -713,7 +714,7 @@ async def sane_wait_for(futures: Iterable[Awaitable[T]], *, timeout: Optional[fl
     done, pending = await asyncio.wait(ensured, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
 
     if len(pending) != 0:
-        raise asyncio.TimeoutError()
+        raise asyncio.TimeoutError
 
     return done
 
@@ -939,7 +940,7 @@ def remove_markdown(text: str, *, ignore_links: bool = True) -> str:
     regex = _MARKDOWN_STOCK_REGEX
     if ignore_links:
         regex = f'(?:{_URL_REGEX}|{regex})'
-    return re.sub(regex, replacement, text, 0, re.MULTILINE)
+    return re.sub(regex, replacement, text, count=0, flags=re.MULTILINE)
 
 
 def escape_markdown(text: str, *, as_needed: bool = False, ignore_links: bool = True) -> str:
@@ -969,7 +970,7 @@ def escape_markdown(text: str, *, as_needed: bool = False, ignore_links: bool = 
 
     if not as_needed:
 
-        def replacement(match):
+        def replacement(match: re.Match) -> str:
             groupdict = match.groupdict()
             is_url = groupdict.get('url')
             if is_url:
@@ -979,7 +980,7 @@ def escape_markdown(text: str, *, as_needed: bool = False, ignore_links: bool = 
         regex = _MARKDOWN_STOCK_REGEX
         if ignore_links:
             regex = f'(?:{_URL_REGEX}|{regex})'
-        return re.sub(regex, replacement, text, 0, re.MULTILINE)
+        return re.sub(regex, replacement, text, count=0, flags=re.MULTILINE)
     else:
         text = re.sub(r'\\', r'\\\\', text)
         return _MARKDOWN_ESCAPE_REGEX.sub(r'\\\1', text)
@@ -1012,7 +1013,7 @@ def escape_mentions(text: str) -> str:
 
 
 def _chunk(iterator: Iterable[T], max_size: int) -> Iterator[List[T]]:
-    ret = []
+    ret: List[T] = []
     n = 0
     for item in iterator:
         ret.append(item)
@@ -1026,7 +1027,7 @@ def _chunk(iterator: Iterable[T], max_size: int) -> Iterator[List[T]]:
 
 
 async def _achunk(iterator: AsyncIterable[T], max_size: int) -> AsyncIterator[List[T]]:
-    ret = []
+    ret: List[T] = []
     n = 0
     async for item in iterator:
         ret.append(item)
@@ -1083,7 +1084,7 @@ PY_310 = sys.version_info >= (3, 10)
 
 
 def flatten_literal_params(parameters: Iterable[Any]) -> Tuple[Any, ...]:
-    params = []
+    params: List[Any] = []
     literal_cls = type(Literal[0])
     for p in parameters:
         if isinstance(p, literal_cls):
@@ -1270,7 +1271,7 @@ class _ColourFormatter(logging.Formatter):
     # 100-107 are the same as the bright ones but for the background.
     # 1 means bold, 2 means dim, 0 means reset, and 4 means underline.
 
-    LEVEL_COLOURS = [
+    LEVEL_COLOURS: ClassVar[List[Tuple[int, str]]] = [
         (logging.DEBUG, '\x1b[40;1m'),
         (logging.INFO, '\x1b[34;1m'),
         (logging.WARNING, '\x1b[33;1m'),
@@ -1278,7 +1279,7 @@ class _ColourFormatter(logging.Formatter):
         (logging.CRITICAL, '\x1b[41m'),
     ]
 
-    FORMATS = {
+    FORMATS: ClassVar[Dict[int, logging.Formatter]] = {
         level: logging.Formatter(
             f'\x1b[30;1m%(asctime)s\x1b[0m {colour}%(levelname)-8s\x1b[0m \x1b[35m%(name)s\x1b[0m %(message)s',
             '%Y-%m-%d %H:%M:%S',
@@ -1286,7 +1287,7 @@ class _ColourFormatter(logging.Formatter):
         for level, colour in LEVEL_COLOURS
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         formatter = self.FORMATS.get(record.levelno)
         if formatter is None:
             formatter = self.FORMATS[logging.DEBUG]

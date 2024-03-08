@@ -23,12 +23,13 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-import logging
-import inspect
 
+import inspect
+import logging
+from collections import Counter
 from typing import (
-    Any,
     TYPE_CHECKING,
+    Any,
     Callable,
     Coroutine,
     Dict,
@@ -43,33 +44,30 @@ from typing import (
     Union,
     overload,
 )
-from collections import Counter
 
-
-from .namespace import Namespace, ResolveKey
-from .models import AppCommand
+from .._types import ClientT
+from ..enums import AppCommandType, InteractionType
+from ..errors import ClientException, HTTPException
+from ..utils import MISSING, _get_as_snowflake, _is_submodule, _shorten
 from .commands import Command, ContextMenu, Group
 from .errors import (
     AppCommandError,
     CommandAlreadyRegistered,
+    CommandLimitReached,
     CommandNotFound,
     CommandSignatureMismatch,
-    CommandLimitReached,
     CommandSyncFailure,
     MissingApplicationID,
 )
+from .models import AppCommand
+from .namespace import Namespace, ResolveKey
 from .translator import Translator, locale_str
-from ..errors import ClientException, HTTPException
-from ..enums import AppCommandType, InteractionType
-from ..utils import MISSING, _get_as_snowflake, _is_submodule, _shorten
-from .._types import ClientT
-
 
 if TYPE_CHECKING:
-    from ..types.interactions import ApplicationCommandInteractionData, ApplicationCommandInteractionDataOption
-    from ..interactions import Interaction
     from ..abc import Snowflake
-    from .commands import ContextMenuCallback, CommandCallback, P, T
+    from ..interactions import Interaction
+    from ..types.interactions import ApplicationCommandInteractionData, ApplicationCommandInteractionDataOption
+    from .commands import CommandCallback, ContextMenuCallback, P, T
 
     ErrorFunc = Callable[
         [Interaction, AppCommandError],
@@ -455,6 +453,8 @@ class CommandTree(Generic[ClientT]):
             guild_id = None if guild is None else guild.id
             key = (command, guild_id, type.value)
             return self._context_menus.pop(key, None)
+        else:
+            return None
 
     def clear_commands(self, *, guild: Optional[Snowflake], type: Optional[AppCommandType] = None) -> None:
         """Clears all application commands from the tree.
@@ -572,6 +572,8 @@ class CommandTree(Generic[ClientT]):
             guild_id = None if guild is None else guild.id
             key = (command, guild_id, type.value)
             return self._context_menus.get(key)
+        else:
+            return None
 
     @overload
     def get_commands(
@@ -1084,7 +1086,7 @@ class CommandTree(Generic[ClientT]):
             await self.on_error(interaction, error)
 
     def _from_interaction(self, interaction: Interaction[ClientT]) -> None:
-        async def wrapper():
+        async def wrapper() -> None:
             try:
                 await self._call(interaction)
             except AppCommandError as e:

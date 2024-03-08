@@ -25,12 +25,12 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Generator, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Generator, Optional, Type, TypeVar
 
 if TYPE_CHECKING:
-    from .abc import Messageable, MessageableChannel
-
     from types import TracebackType
+
+    from .abc import Messageable, MessageableChannel
 
     BE = TypeVar('BE', bound=BaseException)
 
@@ -41,7 +41,7 @@ __all__ = (
 # fmt: on
 
 
-def _typing_done_callback(fut: asyncio.Future) -> None:
+def _typing_done_callback(fut: asyncio.Future[Any]) -> None:
     # just retrieve any exception and call it a day
     try:
         fut.exception()

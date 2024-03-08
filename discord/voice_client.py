@@ -27,30 +27,28 @@ from __future__ import annotations
 import asyncio
 import logging
 import struct
-from typing import Any, Callable, List, Optional, TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 
 from . import opus
-from .gateway import *
 from .errors import ClientException
+from .gateway import DiscordVoiceWebSocket
 from .player import AudioPlayer, AudioSource
 from .utils import MISSING
 from .voice_state import VoiceConnectionState
 
 if TYPE_CHECKING:
-    from .gateway import DiscordVoiceWebSocket
+    from . import abc
+    from .channel import StageChannel, VoiceChannel
     from .client import Client
     from .guild import Guild
+    from .opus import APPLICATION_CTL, BAND_CTL, SIGNAL_CTL, Encoder
     from .state import ConnectionState
-    from .user import ClientUser
-    from .opus import Encoder, APPLICATION_CTL, BAND_CTL, SIGNAL_CTL
-    from .channel import StageChannel, VoiceChannel
-    from . import abc
-
     from .types.voice import (
         GuildVoiceState as GuildVoiceStatePayload,
-        VoiceServerUpdate as VoiceServerUpdatePayload,
         SupportedModes,
+        VoiceServerUpdate as VoiceServerUpdatePayload,
     )
+    from .user import ClientUser
 
     VocalGuildChannel = Union[VoiceChannel, StageChannel]
 

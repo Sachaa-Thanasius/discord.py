@@ -23,10 +23,11 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Generic, Literal, Optional, TypeVar, Union, overload
-from .errors import TranslationError
-from ..enums import Enum, Locale
 
+from typing import TYPE_CHECKING, Any, Generic, Literal, Optional, TypeVar, Union, overload
+
+from ..enums import Enum, Locale
+from .errors import TranslationError
 
 if TYPE_CHECKING:
     from .commands import Command, ContextMenu, Group, Parameter
@@ -175,7 +176,6 @@ class Translator:
 
         This is invoked when :meth:`CommandTree.set_translator` is called.
         """
-        pass
 
     async def unload(self) -> None:
         """|coro|
@@ -187,7 +187,6 @@ class Translator:
         This is invoked when :meth:`CommandTree.set_translator` is called
         if a tree already has a translator or when :meth:`discord.Client.close` is called.
         """
-        pass
 
     async def _checked_translate(
         self, string: locale_str, locale: Locale, context: TranslationContextTypes

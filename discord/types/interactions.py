@@ -25,15 +25,16 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List, Literal, TypedDict, Union
+
 from typing_extensions import NotRequired
 
-from .channel import ChannelTypeWithoutThread, ThreadMetadata, GuildChannel, InteractionDMChannel, GroupDMChannel
-from .sku import Entitlement
-from .threads import ThreadType
+from .channel import ChannelTypeWithoutThread, GroupDMChannel, GuildChannel, InteractionDMChannel, ThreadMetadata
 from .member import Member
 from .message import Attachment
 from .role import Role
+from .sku import Entitlement
 from .snowflake import Snowflake
+from .threads import ThreadType
 from .user import User
 
 if TYPE_CHECKING:

@@ -25,82 +25,101 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import asyncio
-from collections import deque, OrderedDict
 import copy
+import inspect
 import logging
+import os
+import weakref
+from collections import OrderedDict, deque
 from typing import (
-    Dict,
-    Optional,
     TYPE_CHECKING,
-    Type,
-    Union,
-    Callable,
     Any,
-    List,
-    TypeVar,
+    Callable,
     Coroutine,
-    Sequence,
-    Generic,
-    Tuple,
     Deque,
+    Dict,
+    Generic,
+    List,
     Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
     overload,
 )
-import weakref
-import inspect
 
-import os
-
-from .guild import Guild
-from .activity import BaseActivity
-from .sku import Entitlement
-from .user import User, ClientUser
-from .emoji import Emoji
-from .mentions import AllowedMentions
-from .partial_emoji import PartialEmoji
-from .message import Message
-from .channel import *
-from .channel import _channel_factory
-from .raw_models import *
-from .member import Member
-from .role import Role
-from .enums import ChannelType, try_enum, Status
 from . import utils
+from ._types import ClientT
+from .activity import BaseActivity
+from .audit_logs import AuditLogEntry
+from .automod import AutoModAction, AutoModRule
+from .channel import (
+    DMChannel,
+    ForumChannel,
+    PartialMessageable,
+    StageChannel,
+    TextChannel,
+    VoiceChannel,
+    _channel_factory,
+)
+from .emoji import Emoji
+from .enums import ChannelType, Status, try_enum
 from .flags import ApplicationFlags, Intents, MemberCacheFlags
-from .invite import Invite
+from .guild import Guild
 from .integrations import _integration_factory
 from .interactions import Interaction
-from .ui.view import ViewStore, View
+from .invite import Invite
+from .member import Member
+from .mentions import AllowedMentions
+from .message import Message
+from .partial_emoji import PartialEmoji
+from .raw_models import (
+    RawAppCommandPermissionsUpdateEvent,
+    RawBulkMessageDeleteEvent,
+    RawIntegrationDeleteEvent,
+    RawMemberRemoveEvent,
+    RawMessageDeleteEvent,
+    RawMessageUpdateEvent,
+    RawReactionActionEvent,
+    RawReactionClearEmojiEvent,
+    RawReactionClearEvent,
+    RawThreadDeleteEvent,
+    RawThreadMembersUpdate,
+    RawThreadUpdateEvent,
+    RawTypingEvent,
+)
+from .role import Role
 from .scheduled_event import ScheduledEvent
+from .sku import Entitlement
 from .stage_instance import StageInstance
-from .threads import Thread, ThreadMember
 from .sticker import GuildSticker
-from .automod import AutoModRule, AutoModAction
-from .audit_logs import AuditLogEntry
-from ._types import ClientT
+from .threads import Thread, ThreadMember
+from .ui.view import View, ViewStore
+from .user import ClientUser, User
 
 if TYPE_CHECKING:
     from .abc import PrivateChannel
-    from .message import MessageableChannel
+    from .app_commands import CommandTree, Translator
+    from .gateway import DiscordWebSocket
     from .guild import GuildChannel
     from .http import HTTPClient
-    from .voice_client import VoiceProtocol
-    from .gateway import DiscordWebSocket
-    from .ui.item import Item
-    from .ui.dynamic import DynamicItem
-    from .app_commands import CommandTree, Translator
-
-    from .types.automod import AutoModerationRule, AutoModerationActionExecution
-    from .types.snowflake import Snowflake
+    from .message import MessageableChannel
+    from .types import gateway as gw
     from .types.activity import Activity as ActivityPayload
+    from .types.automod import AutoModerationActionExecution, AutoModerationRule
     from .types.channel import DMChannel as DMChannelPayload
-    from .types.user import User as UserPayload, PartialUser as PartialUserPayload
+    from .types.command import GuildApplicationCommandPermissions as GuildApplicationCommandPermissionsPayload
     from .types.emoji import Emoji as EmojiPayload, PartialEmoji as PartialEmojiPayload
-    from .types.sticker import GuildSticker as GuildStickerPayload
     from .types.guild import Guild as GuildPayload
     from .types.message import Message as MessagePayload, PartialMessage as PartialMessagePayload
-    from .types import gateway as gw
-    from .types.command import GuildApplicationCommandPermissions as GuildApplicationCommandPermissionsPayload
+    from .types.snowflake import Snowflake
+    from .types.sticker import GuildSticker as GuildStickerPayload
+    from .types.user import PartialUser as PartialUserPayload, User as UserPayload
+    from .ui.dynamic import DynamicItem
+    from .ui.item import Item
+    from .voice_client import VoiceProtocol
 
     T = TypeVar('T')
     Channel = Union[GuildChannel, PrivateChannel, PartialMessageable]
@@ -306,7 +325,7 @@ class ConnectionState(Generic[ClientT]):
             self._messages: Optional[Deque[Message]] = None
 
     def process_chunk_requests(self, guild_id: int, nonce: Optional[str], members: List[Member], complete: bool) -> None:
-        removed = []
+        removed: List[Union[int, str]] = []
         for key, request in self._chunk_requests.items():
             if request.guild_id == guild_id and request.nonce == nonce:
                 request.add_members(members)
@@ -318,7 +337,7 @@ class ConnectionState(Generic[ClientT]):
             del self._chunk_requests[key]
 
     def clear_chunk_requests(self, shard_id: int | None) -> None:
-        removed = []
+        removed: List[Union[int, str]] = []
         for key, request in self._chunk_requests.items():
             if shard_id is None or request.shard_id == shard_id:
                 request.done()
@@ -562,7 +581,7 @@ class ConnectionState(Generic[ClientT]):
 
     async def _delay_ready(self) -> None:
         try:
-            states = []
+            states: List[Tuple[Guild, asyncio.Future[List[Member]]]] = []
             while True:
                 # this snippet of code is basically waiting N seconds
                 # until the last GUILD_CREATE was sent
@@ -1111,7 +1130,7 @@ class ConnectionState(Generic[ClientT]):
         for emoji in before_emojis:
             self._emojis.pop(emoji.id, None)
         # guild won't be None here
-        guild.emojis = tuple(map(lambda d: self.store_emoji(guild, d), data['emojis']))
+        guild.emojis = tuple(self.store_emoji(guild, d) for d in data['emojis'])
         self.dispatch('guild_emojis_update', guild, before_emojis, guild.emojis)
 
     def parse_guild_stickers_update(self, data: gw.GuildStickersUpdateEvent) -> None:
@@ -1124,7 +1143,7 @@ class ConnectionState(Generic[ClientT]):
         for emoji in before_stickers:
             self._stickers.pop(emoji.id, None)
 
-        guild.stickers = tuple(map(lambda d: self.store_sticker(guild, d), data['stickers']))
+        guild.stickers = tuple(self.store_sticker(guild, d) for d in data['stickers'])
         self.dispatch('guild_stickers_update', guild, before_stickers, guild.stickers)
 
     def parse_guild_audit_log_entry_create(self, data: gw.GuildAuditLogEntryCreate) -> None:
@@ -1229,7 +1248,7 @@ class ConnectionState(Generic[ClientT]):
     def _chunk_timeout(self, guild: Guild) -> float:
         return max(5.0, (guild.member_count or 0) / 10000)
 
-    async def _chunk_and_dispatch(self, guild, unavailable):
+    async def _chunk_and_dispatch(self, guild: Guild, unavailable: Optional[bool]) -> None:
         timeout = self._chunk_timeout(guild)
 
         try:
@@ -1541,7 +1560,7 @@ class ConnectionState(Generic[ClientT]):
         else:
             _log.debug('SCHEDULED_EVENT_USER_REMOVE referencing unknown guild ID: %s. Discarding.', data['guild_id'])
 
-    def parse_application_command_permissions_update(self, data: GuildApplicationCommandPermissionsPayload):
+    def parse_application_command_permissions_update(self, data: GuildApplicationCommandPermissionsPayload) -> None:
         raw = RawAppCommandPermissionsUpdateEvent(data=data, state=self)
         self.dispatch('raw_app_command_permissions_update', raw)
 
@@ -1653,6 +1672,8 @@ class ConnectionState(Generic[ClientT]):
             if channel is not None:
                 return channel
 
+        return None
+
     def create_message(self, *, channel: MessageableChannel, data: MessagePayload) -> Message:
         return Message(state=self, channel=channel, data=data)
 
@@ -1715,7 +1736,7 @@ class AutoShardedConnectionState(ConnectionState[ClientT]):
 
     async def _delay_shard_ready(self, shard_id: int) -> None:
         try:
-            states = []
+            states: List[Tuple[Guild, asyncio.Future[List[Member]]]] = []
             while True:
                 # this snippet of code is basically waiting N seconds
                 # until the last GUILD_CREATE was sent

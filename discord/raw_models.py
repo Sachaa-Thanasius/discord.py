@@ -25,37 +25,37 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING, Literal, Optional, Set, List, Tuple, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Set, Tuple, Union
 
-from .enums import ChannelType, try_enum
-from .utils import _get_as_snowflake
 from .app_commands import AppCommandPermissions
 from .colour import Colour
+from .enums import ChannelType, try_enum
+from .utils import _get_as_snowflake
 
 if TYPE_CHECKING:
-    from .types.gateway import (
-        MessageDeleteEvent,
-        MessageDeleteBulkEvent as BulkMessageDeleteEvent,
-        MessageReactionAddEvent,
-        MessageReactionRemoveEvent,
-        MessageReactionRemoveAllEvent as ReactionClearEvent,
-        MessageReactionRemoveEmojiEvent as ReactionClearEmojiEvent,
-        MessageUpdateEvent,
-        IntegrationDeleteEvent,
-        ThreadUpdateEvent,
-        ThreadDeleteEvent,
-        ThreadMembersUpdate,
-        TypingStartEvent,
-        GuildMemberRemoveEvent,
-    )
-    from .types.command import GuildApplicationCommandPermissions
+    from .guild import Guild
+    from .member import Member
     from .message import Message
     from .partial_emoji import PartialEmoji
-    from .member import Member
-    from .threads import Thread
-    from .user import User
     from .state import ConnectionState
-    from .guild import Guild
+    from .threads import Thread
+    from .types.command import GuildApplicationCommandPermissions
+    from .types.gateway import (
+        GuildMemberRemoveEvent,
+        IntegrationDeleteEvent,
+        MessageDeleteBulkEvent as BulkMessageDeleteEvent,
+        MessageDeleteEvent,
+        MessageReactionAddEvent,
+        MessageReactionRemoveAllEvent as ReactionClearEvent,
+        MessageReactionRemoveEmojiEvent as ReactionClearEmojiEvent,
+        MessageReactionRemoveEvent,
+        MessageUpdateEvent,
+        ThreadDeleteEvent,
+        ThreadMembersUpdate,
+        ThreadUpdateEvent,
+        TypingStartEvent,
+    )
+    from .user import User
 
     ReactionActionEvent = Union[MessageReactionAddEvent, MessageReactionRemoveEvent]
     ReactionActionType = Literal['REACTION_ADD', 'REACTION_REMOVE']

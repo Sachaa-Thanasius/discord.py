@@ -24,12 +24,9 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import inspect
-import discord
 import logging
-from discord import app_commands
-from discord.utils import maybe_coroutine, _to_kebab_case
-
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -39,19 +36,23 @@ from typing import (
     Iterable,
     List,
     Optional,
-    TYPE_CHECKING,
     Sequence,
     Tuple,
     TypeVar,
     Union,
 )
 
-from ._types import _BaseCommand, BotT
+import discord
+from discord import app_commands
+from discord.utils import _to_kebab_case, maybe_coroutine
+
+from ._types import BotT, _BaseCommand
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from discord.abc import Snowflake
+
     from discord._types import ClientT
+    from discord.abc import Snowflake
 
     from .bot import BotBase
     from .context import Context
@@ -560,8 +561,6 @@ class Cog(metaclass=CogMeta):
 
         .. versionadded:: 2.0
         """
-        pass
-
     @_cog_special_method
     async def cog_unload(self) -> None:
         """|maybecoro|
@@ -576,7 +575,6 @@ class Cog(metaclass=CogMeta):
 
             This method can now be a :term:`coroutine`.
         """
-        pass
 
     @_cog_special_method
     def bot_check_once(self, ctx: Context[BotT]) -> bool:
@@ -639,7 +637,6 @@ class Cog(metaclass=CogMeta):
         error: :class:`CommandError`
             The error that happened.
         """
-        pass
 
     @_cog_special_method
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError) -> None:
@@ -660,7 +657,6 @@ class Cog(metaclass=CogMeta):
         error: :exc:`~discord.app_commands.AppCommandError`
             The exception that was raised.
         """
-        pass
 
     @_cog_special_method
     async def cog_before_invoke(self, ctx: Context[BotT]) -> None:
@@ -677,7 +673,6 @@ class Cog(metaclass=CogMeta):
         ctx: :class:`.Context`
             The invocation context.
         """
-        pass
 
     @_cog_special_method
     async def cog_after_invoke(self, ctx: Context[BotT]) -> None:
@@ -694,7 +689,6 @@ class Cog(metaclass=CogMeta):
         ctx: :class:`.Context`
             The invocation context.
         """
-        pass
 
     async def _inject(self, bot: BotBase, override: bool, guild: Optional[Snowflake], guilds: Sequence[Snowflake]) -> Self:
         cls = self.__class__

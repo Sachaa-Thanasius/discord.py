@@ -25,11 +25,11 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from . import utils
 from .app_commands import MissingApplicationID
-from .enums import try_enum, SKUType, EntitlementType
+from .enums import EntitlementType, SKUType, try_enum
 from .flags import SKUFlags
 
 if TYPE_CHECKING:

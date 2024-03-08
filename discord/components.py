@@ -24,26 +24,27 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import ClassVar, List, Literal, Optional, TYPE_CHECKING, Tuple, Union, overload
-from .enums import try_enum, ComponentType, ButtonStyle, TextStyle, ChannelType, SelectDefaultValueType
-from .utils import get_slots, MISSING
+from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Tuple, Union, overload
+
+from .enums import ButtonStyle, ChannelType, ComponentType, SelectDefaultValueType, TextStyle, try_enum
 from .partial_emoji import PartialEmoji, _EmojiTag
+from .utils import MISSING, get_slots
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+    from .abc import Snowflake
+    from .emoji import Emoji
     from .types.components import (
-        Component as ComponentPayload,
+        ActionRow as ActionRowPayload,
+        ActionRowChildComponent as ActionRowChildComponentPayload,
         ButtonComponent as ButtonComponentPayload,
+        Component as ComponentPayload,
+        SelectDefaultValues as SelectDefaultValuesPayload,
         SelectMenu as SelectMenuPayload,
         SelectOption as SelectOptionPayload,
-        ActionRow as ActionRowPayload,
         TextInput as TextInputPayload,
-        ActionRowChildComponent as ActionRowChildComponentPayload,
-        SelectDefaultValues as SelectDefaultValuesPayload,
     )
-    from .emoji import Emoji
-    from .abc import Snowflake
 
     ActionRowChildComponentType = Union['Button', 'SelectMenu', 'TextInput']
 
@@ -88,7 +89,7 @@ class Component:
         raise NotImplementedError
 
     @classmethod
-    def _raw_construct(cls, **kwargs) -> Self:
+    def _raw_construct(cls, **kwargs: object) -> Self:
         self = cls.__new__(cls)
         for slot in get_slots(cls):
             try:
@@ -648,3 +649,5 @@ def _component_factory(data: ComponentPayload) -> Optional[Union[ActionRow, Acti
         return TextInput(data)
     elif data['type'] in (3, 5, 6, 7, 8):
         return SelectMenu(data)
+    else:
+        return None

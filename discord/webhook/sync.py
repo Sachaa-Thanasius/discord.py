@@ -30,22 +30,20 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-import threading
-import logging
 import json
-import time
+import logging
 import re
-
-from urllib.parse import quote as urlquote
-from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING, Sequence, Tuple, Union, TypeVar, Type, overload
+import threading
+import time
 import weakref
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, Tuple, Type, TypeVar, Union, overload
+from urllib.parse import quote as urlquote
 
 from .. import utils
-from ..errors import HTTPException, Forbidden, NotFound, DiscordServerError
-from ..message import Message, MessageFlags
-from ..http import Route, handle_message_parameters
 from ..channel import PartialMessageable
-
+from ..errors import DiscordServerError, Forbidden, HTTPException, NotFound
+from ..http import Route, handle_message_parameters
+from ..message import Attachment, Message, MessageFlags
 from .async_ import BaseWebhook, _WebhookState
 
 __all__ = (
@@ -56,26 +54,26 @@ __all__ = (
 _log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
     from types import TracebackType
 
-    from ..file import File
-    from ..embeds import Embed
-    from ..mentions import AllowedMentions
-    from ..message import Attachment
+    from typing_extensions import Self
+
     from ..abc import Snowflake
+    from ..embeds import Embed
+    from ..file import File
+    from ..mentions import AllowedMentions
     from ..state import ConnectionState
-    from ..types.webhook import (
-        Webhook as WebhookPayload,
-    )
     from ..types.message import (
         Message as MessagePayload,
+    )
+    from ..types.webhook import (
+        Webhook as WebhookPayload,
     )
 
     BE = TypeVar('BE', bound=BaseException)
 
     try:
-        from requests import Session, Response
+        from requests import Response, Session
     except ModuleNotFoundError:
         pass
 
@@ -1046,6 +1044,8 @@ class SyncWebhook(BaseWebhook):
 
         if wait:
             return self._create_message(data, thread=thread)
+        else:
+            return None
 
     def fetch_message(self, id: int, /, *, thread: Snowflake = MISSING) -> SyncWebhookMessage:
         """Retrieves a single :class:`~discord.SyncWebhookMessage` owned by this webhook.

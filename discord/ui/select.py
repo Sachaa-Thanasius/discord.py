@@ -22,42 +22,43 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
+
+import inspect
+import os
+from contextvars import ContextVar
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Callable,
+    Dict,
     List,
     Literal,
     Optional,
-    TYPE_CHECKING,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
-    Callable,
     Union,
-    Dict,
     overload,
-    Sequence,
 )
-from contextvars import ContextVar
-import inspect
-import os
 
-from .item import Item, ItemCallbackType
-from ..enums import ChannelType, ComponentType, SelectDefaultValueType
-from ..partial_emoji import PartialEmoji
-from ..emoji import Emoji
-from ..utils import MISSING, _human_join
-from ..components import (
-    SelectOption,
-    SelectMenu,
-    SelectDefaultValue,
-)
+from ..abc import GuildChannel
 from ..app_commands.namespace import Namespace
+from ..components import (
+    SelectDefaultValue,
+    SelectMenu,
+    SelectOption,
+)
+from ..emoji import Emoji
+from ..enums import ChannelType, ComponentType, SelectDefaultValueType
 from ..member import Member
 from ..object import Object
+from ..partial_emoji import PartialEmoji
 from ..role import Role
-from ..user import User, ClientUser
-from ..abc import GuildChannel
 from ..threads import Thread
+from ..user import ClientUser, User
+from ..utils import MISSING, _human_join
+from .item import Item, ItemCallbackType
 
 __all__ = (
     'Select',
@@ -71,11 +72,11 @@ __all__ = (
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias, TypeGuard
 
-    from .view import View
-    from ..types.components import SelectMenu as SelectMenuPayload
-    from ..types.interactions import SelectMessageComponentInteractionData
     from ..app_commands import AppCommandChannel, AppCommandThread
     from ..interactions import Interaction
+    from ..types.components import SelectMenu as SelectMenuPayload
+    from ..types.interactions import SelectMessageComponentInteractionData
+    from .view import View
 
     ValidSelectType: TypeAlias = Literal[
         ComponentType.string_select,

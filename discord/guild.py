@@ -27,7 +27,9 @@ from __future__ import annotations
 import copy
 import datetime
 import unicodedata
+import warnings
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncIterator,
     ClassVar,
@@ -35,65 +37,60 @@ from typing import (
     Coroutine,
     Dict,
     List,
+    Literal,
     Mapping,
     NamedTuple,
+    Optional,
     Sequence,
     Set,
-    Literal,
-    Optional,
-    TYPE_CHECKING,
     Tuple,
     Union,
     overload,
 )
-import warnings
 
-from . import utils, abc
-from .role import Role
-from .member import Member, VoiceState
-from .emoji import Emoji
-from .errors import InvalidData
-from .permissions import PermissionOverwrite
-from .colour import Colour
-from .errors import ClientException
+from . import abc, utils
+from .asset import Asset
+from .audit_logs import AuditLogEntry
+from .automod import AutoModRule, AutoModRuleAction, AutoModTrigger
 from .channel import *
-from .channel import _guild_channel_factory
-from .channel import _threaded_guild_channel_factory
+from .channel import _guild_channel_factory, _threaded_guild_channel_factory
+from .colour import Colour
+from .emoji import Emoji
 from .enums import (
     AuditLogAction,
-    VideoQualityMode,
+    AutoModRuleEventType,
     ChannelType,
-    EntityType,
-    PrivacyLevel,
-    try_enum,
-    VerificationLevel,
     ContentFilter,
+    EntityType,
+    ForumLayoutType,
+    ForumOrderType,
+    Locale,
+    MFALevel,
     NotificationLevel,
     NSFWLevel,
-    MFALevel,
-    Locale,
-    AutoModRuleEventType,
-    ForumOrderType,
-    ForumLayoutType,
+    PrivacyLevel,
+    VerificationLevel,
+    VideoQualityMode,
+    try_enum,
 )
-from .mixins import Hashable
-from .user import User
-from .invite import Invite
-from .widget import Widget
-from .asset import Asset
+from .errors import ClientException, InvalidData
+from .file import File
 from .flags import SystemChannelFlags
 from .integrations import Integration, PartialIntegration, _integration_factory
+from .invite import Invite
+from .member import Member, VoiceState
+from .mixins import Hashable
+from .object import OLDEST_OBJECT, Object
+from .partial_emoji import PartialEmoji, _EmojiTag
+from .permissions import PermissionOverwrite
+from .role import Role
 from .scheduled_event import ScheduledEvent
 from .stage_instance import StageInstance
-from .threads import Thread, ThreadMember
 from .sticker import GuildSticker
-from .file import File
-from .audit_logs import AuditLogEntry
-from .object import OLDEST_OBJECT, Object
-from .welcome_screen import WelcomeScreen, WelcomeChannel
-from .automod import AutoModRule, AutoModTrigger, AutoModRuleAction
-from .partial_emoji import _EmojiTag, PartialEmoji
-
+from .threads import Thread, ThreadMember
+from .user import User
+from .welcome_screen import WelcomeChannel, WelcomeScreen
+from .widget import Widget
 
 __all__ = (
     'Guild',
@@ -104,37 +101,37 @@ MISSING = utils.MISSING
 
 if TYPE_CHECKING:
     from .abc import Snowflake, SnowflakeTime
+    from .channel import CategoryChannel, ForumChannel, StageChannel, TextChannel, VoiceChannel
+    from .message import EmojiInputType
+    from .permissions import Permissions
+    from .state import ConnectionState
+    from .template import Template
+    from .types.audit_log import AuditLogEvent
+    from .types.channel import (
+        CategoryChannel as CategoryChannelPayload,
+        ForumChannel as ForumChannelPayload,
+        GuildChannel as GuildChannelPayload,
+        NewsChannel as NewsChannelPayload,
+        StageChannel as StageChannelPayload,
+        TextChannel as TextChannelPayload,
+        VoiceChannel as VoiceChannelPayload,
+    )
     from .types.guild import (
         Ban as BanPayload,
         Guild as GuildPayload,
-        RolePositionUpdate as RolePositionUpdatePayload,
         GuildFeature,
         IncidentData,
+        RolePositionUpdate as RolePositionUpdatePayload,
     )
+    from .types.integration import IntegrationType
+    from .types.snowflake import SnowflakeList
     from .types.threads import (
         Thread as ThreadPayload,
     )
     from .types.voice import GuildVoiceState
-    from .permissions import Permissions
-    from .channel import VoiceChannel, StageChannel, TextChannel, ForumChannel, CategoryChannel
-    from .template import Template
-    from .webhook import Webhook
-    from .state import ConnectionState
-    from .voice_client import VoiceProtocol
-    from .types.channel import (
-        GuildChannel as GuildChannelPayload,
-        TextChannel as TextChannelPayload,
-        NewsChannel as NewsChannelPayload,
-        VoiceChannel as VoiceChannelPayload,
-        CategoryChannel as CategoryChannelPayload,
-        StageChannel as StageChannelPayload,
-        ForumChannel as ForumChannelPayload,
-    )
-    from .types.integration import IntegrationType
-    from .types.snowflake import SnowflakeList
     from .types.widget import EditWidgetSettings
-    from .types.audit_log import AuditLogEvent
-    from .message import EmojiInputType
+    from .voice_client import VoiceProtocol
+    from .webhook import Webhook
 
     VocalGuildChannel = Union[VoiceChannel, StageChannel]
     GuildChannel = Union[VocalGuildChannel, ForumChannel, TextChannel, CategoryChannel]
@@ -394,7 +391,7 @@ class Guild(Hashable):
             ('chunked', self.chunked),
             ('member_count', self._member_count),
         )
-        inner = ' '.join('%s=%r' % t for t in attrs)
+        inner = ' '.join(f'{attr}={val!r}' for attr, val in attrs)
         return f'<Guild {inner}>'
 
     def _update_voice_state(self, data: GuildVoiceState, channel_id: int) -> Tuple[Optional[Member], VoiceState, VoiceState]:
@@ -475,12 +472,12 @@ class Guild(Hashable):
             self._roles[role.id] = role
 
         self.emojis: Tuple[Emoji, ...] = (
-            tuple(map(lambda d: state.store_emoji(self, d), guild.get('emojis', [])))
+            tuple(state.store_emoji(self, d) for d in guild.get('emojis', []))
             if state.cache_guild_expressions
             else ()
         )
         self.stickers: Tuple[GuildSticker, ...] = (
-            tuple(map(lambda d: state.store_sticker(self, d), guild.get('stickers', [])))
+            tuple(state.store_sticker(self, d) for d in guild.get('stickers', []))
             if state.cache_guild_expressions
             else ()
         )
@@ -682,7 +679,7 @@ class Guild(Hashable):
 
     def _resolve_channel(self, id: Optional[int], /) -> Optional[Union[GuildChannel, Thread]]:
         if id is None:
-            return
+            return None
 
         return self._channels.get(id) or self._threads.get(id)
 
@@ -1759,7 +1756,7 @@ class Guild(Hashable):
             elif isinstance(default_reaction_emoji, str):
                 options['default_reaction_emoji'] = PartialEmoji.from_str(default_reaction_emoji)._to_forum_tag_payload()
             else:
-                raise ValueError(f'default_reaction_emoji parameter must be either Emoji, PartialEmoji, or str')
+                raise ValueError('default_reaction_emoji parameter must be either Emoji, PartialEmoji, or str')
 
         if default_layout is not MISSING:
             if not isinstance(default_layout, ForumLayoutType):
@@ -2226,7 +2223,7 @@ class Guild(Hashable):
         """
         data = await self._state.http.get_all_guild_channels(self.id)
 
-        def convert(d):
+        def convert(d: Mapping[str, Any]):
             factory, ch_type = _guild_channel_factory(d['type'])
             if factory is None:
                 raise InvalidData('Unknown channel type {type} for channel ID {id}.'.format_map(d))
@@ -2741,7 +2738,7 @@ class Guild(Hashable):
         """
 
         data = await self._state.http.invites_from(self.id)
-        result = []
+        result: List[Invite] = []
         for invite in data:
             channel = self.get_channel(int(invite['channel']['id']))
             result.append(Invite(state=self._state, data=invite, guild=self, channel=channel))
@@ -2823,7 +2820,7 @@ class Guild(Hashable):
         """
         data = await self._state.http.get_all_integrations(self.id)
 
-        def convert(d):
+        def convert(d: Mapping[str, Any]):
             factory, _ = _integration_factory(d['type'])
             if factory is None:
                 raise InvalidData('Unknown integration type {type!r} for integration ID {id}'.format_map(d))
@@ -3592,7 +3589,7 @@ class Guild(Hashable):
         if not isinstance(positions, Mapping):
             raise TypeError('positions parameter expects a dict.')
 
-        role_positions = []
+        role_positions: List[RolePositionUpdatePayload] = []
         for role, position in positions.items():
             payload: RolePositionUpdatePayload = {'id': role.id, 'position': position}
 
@@ -3951,9 +3948,8 @@ class Guild(Hashable):
         if isinstance(after, datetime.datetime):
             after = Object(id=utils.time_snowflake(after, high=True))
 
-        if oldest_first:
-            if after is MISSING:
-                after = OLDEST_OBJECT
+        if oldest_first and after is MISSING:
+            after = OLDEST_OBJECT
 
         predicate = None
 

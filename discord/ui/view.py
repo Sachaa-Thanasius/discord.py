@@ -23,24 +23,25 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-from typing import Any, Callable, ClassVar, Coroutine, Dict, Iterator, List, Optional, Sequence, TYPE_CHECKING, Tuple, Type
-from functools import partial
-from itertools import groupby
 
 import asyncio
 import logging
+import os
 import sys
 import time
-import os
-from .item import Item, ItemCallbackType
-from .dynamic import DynamicItem
+from functools import partial
+from itertools import groupby
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Coroutine, Dict, Iterator, List, Optional, Sequence, Tuple, Type
+
 from ..components import (
-    Component,
     ActionRow as ActionRowComponent,
-    _component_factory,
     Button as ButtonComponent,
+    Component,
     SelectMenu as SelectComponent,
+    _component_factory,
 )
+from .dynamic import DynamicItem
+from .item import Item, ItemCallbackType
 
 # fmt: off
 __all__ = (
@@ -50,14 +51,15 @@ __all__ = (
 
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
     import re
+
+    from typing_extensions import Self
 
     from ..interactions import Interaction
     from ..message import Message
+    from ..state import ConnectionState
     from ..types.components import Component as ComponentPayload
     from ..types.interactions import ModalSubmitComponentInteractionData as ModalSubmitComponentInteractionDataPayload
-    from ..state import ConnectionState
     from .modal import Modal
 
 
@@ -72,7 +74,7 @@ def _walk_all_components(components: List[Component]) -> Iterator[Component]:
             yield item
 
 
-def _component_to_item(component: Component) -> Item:
+def _component_to_item(component: Component) -> Item[Any]:
     if isinstance(component, ButtonComponent):
         from .button import Button
 
@@ -92,7 +94,7 @@ class _ViewWeights:
     )
     # fmt: on
 
-    def __init__(self, children: List[Item]):
+    def __init__(self, children: List[Item[Any]]):
         self.weights: List[int] = [0, 0, 0, 0, 0]
 
         key = lambda i: sys.maxsize if i.row is None else i.row
@@ -101,14 +103,14 @@ class _ViewWeights:
             for item in group:
                 self.add_item(item)
 
-    def find_open_space(self, item: Item) -> int:
+    def find_open_space(self, item: Item[Any]) -> int:
         for index, weight in enumerate(self.weights):
             if weight + item.width <= 5:
                 return index
 
         raise ValueError('could not find open space for item')
 
-    def add_item(self, item: Item) -> None:
+    def add_item(self, item: Item[Any]) -> None:
         if item.row is not None:
             total = self.weights[item.row] + item.width
             if total > 5:
@@ -120,7 +122,7 @@ class _ViewWeights:
             self.weights[index] += item.width
             item._rendered_row = index
 
-    def remove_item(self, item: Item) -> None:
+    def remove_item(self, item: Item[Any]) -> None:
         if item._rendered_row is not None:
             self.weights[item._rendered_row] -= item.width
             item._rendered_row = None
@@ -174,9 +176,9 @@ class View:
         cls.__view_children_items__ = list(children.values())
 
     def _init_children(self) -> List[Item[Self]]:
-        children = []
+        children: List[Item[Self]] = []
         for func in self.__view_children_items__:
-            item: Item = func.__discord_ui_model_type__(**func.__discord_ui_model_kwargs__)
+            item: Item[Self] = func.__discord_ui_model_type__(**func.__discord_ui_model_kwargs__)
             item.callback = _ViewCallback(func, self, item)
             item._view = self
             setattr(self, func.__name__, item)
@@ -201,7 +203,7 @@ class View:
         while True:
             # Guard just in case someone changes the value of the timeout at runtime
             if self.timeout is None:
-                return
+                return None
 
             if self.__timeout_expiry is None:
                 return self._dispatch_timeout()
@@ -215,7 +217,7 @@ class View:
             await asyncio.sleep(self.__timeout_expiry - now)
 
     def to_components(self) -> List[Dict[str, Any]]:
-        def key(item: Item) -> int:
+        def key(item: Item[Self]) -> int:
             return item._rendered_row or 0
 
         children = sorted(self._children, key=key)
@@ -395,7 +397,6 @@ class View:
 
         A callback that is called when a view's timeout elapses without being explicitly stopped.
         """
-        pass
 
     async def on_error(self, interaction: Interaction, error: Exception, item: Item[Any], /) -> None:
         """|coro|
@@ -416,13 +417,13 @@ class View:
         """
         _log.error('Ignoring exception in view %r for item %r', self, item, exc_info=error)
 
-    async def _scheduled_task(self, item: Item, interaction: Interaction):
+    async def _scheduled_task(self, item: Item[Self], interaction: Interaction) -> None:
         try:
             item._refresh_state(interaction, interaction.data)  # type: ignore
 
             allow = await item.interaction_check(interaction) and await self.interaction_check(interaction)
             if not allow:
-                return
+                return None
 
             if self.timeout:
                 self.__timeout_expiry = time.monotonic() + self.timeout
@@ -440,7 +441,7 @@ class View:
             self.__timeout_expiry = time.monotonic() + self.timeout
             self.__timeout_task = asyncio.create_task(self.__timeout_task_impl())
 
-    def _dispatch_timeout(self):
+    def _dispatch_timeout(self) -> None:
         if self.__stopped.done():
             return
 
@@ -451,7 +452,7 @@ class View:
         self.__stopped.set_result(True)
         asyncio.create_task(self.on_timeout(), name=f'discord-ui-view-timeout-{self.id}')
 
-    def _dispatch_item(self, item: Item, interaction: Interaction):
+    def _dispatch_item(self, item: Item[Self], interaction: Interaction) -> None:
         if self.__stopped.done():
             return
 

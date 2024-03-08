@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, List, Mapping, Optional, Protocol, TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Protocol, TypeVar, Union
 
 from . import utils
 from .colour import Colour
@@ -290,7 +290,7 @@ class Embed:
             )
         )
 
-    def __eq__(self, other: Embed) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Embed) and (
             self.type == other.type
             and self.title == other.title

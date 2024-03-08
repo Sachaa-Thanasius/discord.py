@@ -24,9 +24,10 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Any, Optional, TYPE_CHECKING, List
-from .utils import parse_time, _bytes_to_base64_data, MISSING
+from typing import TYPE_CHECKING, Any, Dict, List, NoReturn, Optional
+
 from .guild import Guild
+from .utils import MISSING, _bytes_to_base64_data, parse_time
 
 # fmt: off
 __all__ = (
@@ -36,25 +37,26 @@ __all__ = (
 
 if TYPE_CHECKING:
     import datetime
-    from .types.template import Template as TemplatePayload
+
     from .state import ConnectionState
+    from .types.template import Template as TemplatePayload
     from .user import User
 
 
 class _FriendlyHttpAttributeErrorHelper:
     __slots__ = ()
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> NoReturn:
         raise AttributeError('PartialTemplateState does not support http methods.')
 
 
 class _PartialTemplateState:
-    def __init__(self, *, state) -> None:
+    def __init__(self, *, state: ConnectionState) -> None:
         self.__state = state
         self.http = _FriendlyHttpAttributeErrorHelper()
 
     @property
-    def shard_count(self):
+    def shard_count(self) -> Optional[int]:
         return self.__state.shard_count
 
     @property
@@ -62,7 +64,7 @@ class _PartialTemplateState:
         return self.__state.user
 
     @property
-    def self_id(self):
+    def self_id(self) -> int:
         return self.__state.user.id
 
     @property
@@ -70,7 +72,7 @@ class _PartialTemplateState:
         return self.__state.member_cache_flags
 
     @property
-    def cache_guild_expressions(self):
+    def cache_guild_expressions(self) -> bool:
         return False
 
     def store_emoji(self, guild, packet) -> None:
@@ -274,7 +276,7 @@ class Template:
         :class:`Template`
             The newly edited template.
         """
-        payload = {}
+        payload: Dict[str, Any] = {}
 
         if name is not MISSING:
             payload['name'] = name

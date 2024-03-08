@@ -26,7 +26,9 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import inspect
 import logging
+from collections.abc import Sequence
 from typing import (
     Any,
     Callable,
@@ -40,10 +42,8 @@ from typing import (
 )
 
 import aiohttp
-import discord
-import inspect
 
-from collections.abc import Sequence
+import discord
 from discord.backoff import ExponentialBackoff
 from discord.utils import MISSING
 
@@ -189,7 +189,7 @@ class Loop(Generic[LF]):
         else:
             await coro(*args, **kwargs)
 
-    def _try_sleep_until(self, dt: datetime.datetime):
+    def _try_sleep_until(self, dt: datetime.datetime) -> asyncio.Future[Any]:
         self._handle = SleepHandle(dt=dt, loop=asyncio.get_running_loop())
         return self._handle.wait()
 
@@ -302,6 +302,8 @@ class Loop(Generic[LF]):
         """
         if self._seconds is not MISSING:
             return self._seconds
+        else:
+            return None
 
     @property
     def minutes(self) -> Optional[float]:
@@ -312,6 +314,8 @@ class Loop(Generic[LF]):
         """
         if self._minutes is not MISSING:
             return self._minutes
+        else:
+            return None
 
     @property
     def hours(self) -> Optional[float]:
@@ -322,6 +326,8 @@ class Loop(Generic[LF]):
         """
         if self._hours is not MISSING:
             return self._hours
+        else:
+            return None
 
     @property
     def time(self) -> Optional[List[datetime.time]]:
@@ -332,6 +338,8 @@ class Loop(Generic[LF]):
         """
         if self._time is not MISSING:
             return self._time.copy()
+        else:
+            return None
 
     @property
     def current_loop(self) -> int:
@@ -667,8 +675,8 @@ class Loop(Generic[LF]):
             start = now.astimezone(time.tzinfo)
             if time >= start.timetz():
                 return idx
-        else:
-            return None
+
+        return None
 
     def _get_time_parameter(
         self,

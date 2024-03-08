@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Literal, Optional, 
 from discord.utils import MISSING, maybe_coroutine, resolve_annotation
 
 from .converter import run_converters
-from .errors import BadFlagArgument, MissingFlagArgument, MissingRequiredFlag, TooManyFlags, TooManyArguments
+from .errors import BadFlagArgument, MissingFlagArgument, MissingRequiredFlag, TooManyArguments, TooManyFlags
 from .view import StringView
 
 __all__ = (

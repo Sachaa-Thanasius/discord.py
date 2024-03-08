@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 The MIT License (MIT)
 
@@ -26,28 +24,26 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-import logging
-from typing import Any, Dict, Optional, Generic, TYPE_CHECKING, Sequence, Tuple, Union, List
 import asyncio
 import datetime
+import logging
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, Sequence, Tuple, Union
 
 from . import utils
-from .enums import try_enum, Locale, InteractionType, InteractionResponseType
-from .errors import InteractionResponded, HTTPException, ClientException, DiscordException
-from .flags import MessageFlags
-from .channel import ChannelType
 from ._types import ClientT
-from .sku import Entitlement
-
-from .user import User
-from .member import Member
-from .message import Message, Attachment
-from .permissions import Permissions
-from .http import handle_message_parameters
-from .webhook.async_ import async_context, Webhook, interaction_response_params, interaction_message_response_params
 from .app_commands.namespace import Namespace
-from .app_commands.translator import locale_str, TranslationContext, TranslationContextLocation
-from .channel import _threaded_channel_factory
+from .app_commands.translator import TranslationContext, TranslationContextLocation, locale_str
+from .channel import ChannelType, _threaded_channel_factory
+from .enums import InteractionResponseType, InteractionType, Locale, try_enum
+from .errors import ClientException, DiscordException, HTTPException, InteractionResponded
+from .flags import MessageFlags
+from .http import handle_message_parameters
+from .member import Member
+from .message import Attachment, Message
+from .permissions import Permissions
+from .sku import Entitlement
+from .user import User
+from .webhook.async_ import Webhook, async_context, interaction_message_response_params, interaction_response_params
 
 __all__ = (
     'Interaction',
@@ -56,26 +52,27 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
+    from aiohttp import ClientSession
+
+    from .app_commands.commands import Command, ContextMenu
+    from .app_commands.models import Choice, ChoiceT
+    from .channel import CategoryChannel, DMChannel, ForumChannel, GroupChannel, StageChannel, TextChannel, VoiceChannel
+    from .embeds import Embed
+    from .file import File
+    from .guild import Guild
+    from .mentions import AllowedMentions
+    from .state import ConnectionState
+    from .threads import Thread
     from .types.interactions import (
+        ApplicationCommandInteractionData,
         Interaction as InteractionPayload,
         InteractionData,
-        ApplicationCommandInteractionData,
     )
     from .types.webhook import (
         Webhook as WebhookPayload,
     )
-    from .guild import Guild
-    from .state import ConnectionState
-    from .file import File
-    from .mentions import AllowedMentions
-    from aiohttp import ClientSession
-    from .embeds import Embed
-    from .ui.view import View
-    from .app_commands.models import Choice, ChoiceT
     from .ui.modal import Modal
-    from .channel import VoiceChannel, StageChannel, TextChannel, ForumChannel, CategoryChannel, DMChannel, GroupChannel
-    from .threads import Thread
-    from .app_commands.commands import Command, ContextMenu
+    from .ui.view import View
 
     InteractionChannel = Union[
         VoiceChannel,
@@ -183,7 +180,7 @@ class Interaction(Generic[ClientT]):
         self.command_failed: bool = False
         self._from_data(data)
 
-    def _from_data(self, data: InteractionPayload):
+    def _from_data(self, data: InteractionPayload) -> None:
         self.id: int = int(data['id'])
         self.type: InteractionType = try_enum(InteractionType, data['type'])
         self.data: Optional[InteractionData] = data.get('data')
@@ -832,7 +829,7 @@ class InteractionResponse(Generic[ClientT]):
 
         if delete_after is not None:
 
-            async def inner_call(delay: float = delete_after):
+            async def inner_call(delay: float = delete_after) -> None:
                 await asyncio.sleep(delay)
                 try:
                     await self._parent.delete_original_response()
@@ -961,7 +958,7 @@ class InteractionResponse(Generic[ClientT]):
 
         if delete_after is not None:
 
-            async def inner_call(delay: float = delete_after):
+            async def inner_call(delay: float = delete_after) -> None:
                 await asyncio.sleep(delay)
                 try:
                     await self._parent.delete_original_response()
@@ -1099,7 +1096,7 @@ class _InteractionMessageState:
         self._interaction: Interaction = interaction
         self._parent: ConnectionState = parent
 
-    def _get_guild(self, guild_id):
+    def _get_guild(self, guild_id: Optional[int]) -> Optional[Guild]:
         return self._parent._get_guild(guild_id)
 
     def store_user(self, data, *, cache: bool = True):
@@ -1112,7 +1109,7 @@ class _InteractionMessageState:
     def http(self):
         return self._parent.http
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self._parent, attr)
 
 
@@ -1279,7 +1276,7 @@ class InteractionMessage(Message):
 
         if delay is not None:
 
-            async def inner_call(delay: float = delay):
+            async def inner_call(delay: float = delay) -> None:
                 await asyncio.sleep(delay)
                 try:
                     await self._state._interaction.delete_original_response()

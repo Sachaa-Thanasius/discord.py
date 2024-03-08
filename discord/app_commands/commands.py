@@ -23,9 +23,12 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-import inspect
 
+import inspect
+import re
+from copy import copy as shallow_copy
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -37,7 +40,6 @@ from typing import (
     MutableMapping,
     Optional,
     Set,
-    TYPE_CHECKING,
     Tuple,
     Type,
     TypeVar,
@@ -45,31 +47,29 @@ from typing import (
     overload,
 )
 
-import re
-from copy import copy as shallow_copy
-
 from ..enums import AppCommandOptionType, AppCommandType, ChannelType, Locale
-from .models import Choice
-from .transformers import annotation_to_parameter, CommandParameter, NoneType
-from .errors import AppCommandError, CheckFailure, CommandInvokeError, CommandSignatureMismatch, CommandAlreadyRegistered
-from .translator import TranslationContextLocation, TranslationContext, Translator, locale_str
-from ..message import Message
-from ..user import User
 from ..member import Member
+from ..message import Message
 from ..permissions import Permissions
-from ..utils import resolve_annotation, MISSING, is_inside_class, maybe_coroutine, async_all, _shorten, _to_kebab_case
+from ..user import User
+from ..utils import MISSING, _shorten, _to_kebab_case, async_all, is_inside_class, maybe_coroutine, resolve_annotation
+from .errors import AppCommandError, CheckFailure, CommandAlreadyRegistered, CommandInvokeError, CommandSignatureMismatch
+from .models import Choice
+from .transformers import CommandParameter, NoneType, annotation_to_parameter
+from .translator import TranslationContext, TranslationContextLocation, Translator, locale_str
 
 if TYPE_CHECKING:
-    from typing_extensions import ParamSpec, Concatenate
-    from ..interactions import Interaction
-    from ..abc import Snowflake
-    from .namespace import Namespace
-    from .models import ChoiceT
+    from typing_extensions import Concatenate, ParamSpec
 
     # Generally, these two libraries are supposed to be separate from each other.
     # However, for type hinting purposes it's unfortunately necessary for one to
     # reference the other to prevent type checking errors in callbacks
     from discord.ext import commands
+
+    from ..abc import Snowflake
+    from ..interactions import Interaction
+    from .models import ChoiceT
+    from .namespace import Namespace
 
     ErrorFunc = Callable[[Interaction, AppCommandError], Coroutine[Any, Any, None]]
 
@@ -852,7 +852,7 @@ class Command(Generic[GroupT, P, T]):
         transformed_values = await self._transform_arguments(interaction, namespace)
         return await self._do_call(interaction, transformed_values)
 
-    async def _invoke_autocomplete(self, interaction: Interaction, name: str, namespace: Namespace):
+    async def _invoke_autocomplete(self, interaction: Interaction, name: str, namespace: Namespace) -> None:
         # The namespace contains the Discord provided names so this will be fine
         # even if the name is renamed
         value = namespace.__dict__[name]
@@ -1263,7 +1263,7 @@ class ContextMenu:
     def _has_any_error_handlers(self) -> bool:
         return self.on_error is not None
 
-    async def _invoke(self, interaction: Interaction, arg: Any):
+    async def _invoke(self, interaction: Interaction, arg: Any) -> None:
         try:
             if not await self._check_can_run(interaction):
                 raise CheckFailure(f'The check functions for context menu {self.name!r} failed.')
@@ -1446,7 +1446,7 @@ class Group:
 
             cls.__discord_app_commands_group_children__ = children
 
-            found = set()
+            found: Set[str] = set()
             for child in children:
                 if child.name in found:
                     raise TypeError(f'Command {child.name!r} is a duplicate')
@@ -1563,7 +1563,7 @@ class Group:
             except (AttributeError, IndexError, KeyError):
                 self.module = None
 
-        self._children: Dict[str, Union[Command, Group]] = {}
+        self._children: Dict[str, Union[Command[Any, ..., Any], Group]] = {}
         self.extras: Dict[Any, Any] = extras or {}
 
         bindings: Dict[Group, Group] = {}
@@ -1731,8 +1731,6 @@ class Group:
         error: :exc:`AppCommandError`
             The exception that was raised.
         """
-
-        pass
 
     def error(self, coro: ErrorFunc) -> ErrorFunc:
         """A decorator that registers a coroutine as a local error handler.

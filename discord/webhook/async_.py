@@ -24,29 +24,28 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-import logging
 import asyncio
+import logging
 import re
-
-from urllib.parse import quote as urlquote
-from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING, Sequence, Tuple, Union, TypeVar, Type, overload
-from contextvars import ContextVar
 import weakref
+from contextvars import ContextVar
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, Tuple, Type, TypeVar, Union, overload
+from urllib.parse import quote as urlquote
 
 import aiohttp
 
 from .. import utils
-from ..errors import HTTPException, Forbidden, NotFound, DiscordServerError
-from ..message import Message
-from ..enums import try_enum, WebhookType, ChannelType
-from ..user import BaseUser, User
-from ..flags import MessageFlags
 from ..asset import Asset
-from ..partial_emoji import PartialEmoji
-from ..http import Route, handle_message_parameters, MultipartParameters, HTTPClient, json_or_text
-from ..mixins import Hashable
-from ..channel import TextChannel, ForumChannel, PartialMessageable, ForumTag
+from ..channel import ForumChannel, ForumTag, PartialMessageable, TextChannel
+from ..enums import ChannelType, WebhookType, try_enum
+from ..errors import DiscordServerError, Forbidden, HTTPException, NotFound
 from ..file import File
+from ..flags import MessageFlags
+from ..http import HTTPClient, MultipartParameters, Route, handle_message_parameters, json_or_text
+from ..message import Message
+from ..mixins import Hashable
+from ..partial_emoji import PartialEmoji
+from ..user import BaseUser, User
 
 __all__ = (
     'Webhook',
@@ -58,37 +57,38 @@ __all__ = (
 _log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    import datetime
     from types import TracebackType
 
-    from ..embeds import Embed
+    from typing_extensions import Self
+
+    from ..abc import GuildChannel, Snowflake
+    from ..channel import VoiceChannel
     from ..client import Client
+    from ..embeds import Embed
+    from ..emoji import Emoji
+    from ..guild import Guild
+    from ..http import Response
     from ..mentions import AllowedMentions
     from ..message import Attachment
     from ..state import ConnectionState
-    from ..http import Response
-    from ..guild import Guild
-    from ..emoji import Emoji
-    from ..channel import VoiceChannel
-    from ..abc import Snowflake
-    from ..ui.view import View
-    import datetime
-    from ..types.webhook import (
-        Webhook as WebhookPayload,
-        SourceGuild as SourceGuildPayload,
-    )
-    from ..types.message import (
-        Message as MessagePayload,
-    )
-    from ..types.user import (
-        User as UserPayload,
-        PartialUser as PartialUserPayload,
-    )
     from ..types.channel import (
         PartialChannel as PartialChannelPayload,
     )
     from ..types.emoji import PartialEmoji as PartialEmojiPayload
+    from ..types.message import (
+        Message as MessagePayload,
+    )
     from ..types.snowflake import SnowflakeList
+    from ..types.user import (
+        PartialUser as PartialUserPayload,
+        User as UserPayload,
+    )
+    from ..types.webhook import (
+        SourceGuild as SourceGuildPayload,
+        Webhook as WebhookPayload,
+    )
+    from ..ui.view import View
 
     BE = TypeVar('BE', bound=BaseException)
     _State = Union[ConnectionState, '_WebhookState']
@@ -925,7 +925,7 @@ class WebhookMessage(Message):
 
         if delay is not None:
 
-            async def inner_call(delay: float = delay):
+            async def inner_call(delay: float = delay) -> None:
                 await asyncio.sleep(delay)
                 try:
                     await self._state._webhook.delete_message(self.id, thread=self._state._thread)
@@ -1294,7 +1294,7 @@ class Webhook(BaseWebhook):
         return cls(data, session, token=bot_token, state=state)  # type: ignore  # Casting dict[str, Any] to WebhookPayload
 
     @classmethod
-    def _as_follower(cls, data, *, channel, user) -> Self:
+    def _as_follower(cls, data: Dict[str, Any], *, channel: GuildChannel, user: User) -> Self:
         name = f"{channel.guild} #{channel}"
         feed: WebhookPayload = {
             'id': data['webhook_id'],
